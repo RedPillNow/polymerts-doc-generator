@@ -7,12 +7,9 @@ import { Property } from './models/property';
 import { Listener } from './models/listener';
 import { ComputedProperty } from './models/computed';
 import { Observer } from './models/observer';
+import { Component } from './models/component';
 
-let properties: Property[] = [];
-let behaviors = [];
 let component = null;
-let listeners: Listener[] = [];
-let observers = [];
 
 /**
  * Build the documentation
@@ -21,19 +18,9 @@ let observers = [];
 function start(fileName: string, docPath: string): void {
 	let pathInfo = _getPathInfo(fileName, docPath);
 	let comments: any[] = getComments(pathInfo.fileName)
+	component = new Component();
 	_gatherProgramParts(comments, pathInfo.fileName);
 	_writeDocumentation(pathInfo);
-}
-/**
- * Get the comments
- *
- * @param {String} fileName
- * @returns {any[]}
- */
-function getComments(fileName: string): any[] {
-	let readFile = fs.readFileSync(fileName, 'utf8')
-	let comments = parse(readFile) || [];
-	return comments;
 }
 /**
  * Get the pieces of the path for fileName
@@ -55,12 +42,27 @@ function _getPathInfo(fileName: string, docPath: string): any {
 	return pathInfo;
 }
 /**
+ * Get the comments
+ *
+ * @param {String} fileName
+ * @returns {any[]}
+ */
+function getComments(fileName: string): any[] {
+	let readFile = fs.readFileSync(fileName, 'utf8')
+	let comments = parse(readFile) || [];
+	return comments;
+}
+/**
  * Write out the comments we found along with the function call
  * @param {any} commentsArr
  * @param {any} writeStream
  * @param {string} fileName
  */
 function _gatherProgramParts(commentsArr: any[], fileName: string): void {
+	let properties = [];
+	let listeners = [];
+	let observers = [];
+	let methods = [];
 	for (let i = 0; i < commentsArr.length; i++) {
 		let comment = new Comment(commentsArr[i]);
 		let lines = _getLines(comment.commentStartLine - 2, fileName);
@@ -81,10 +83,10 @@ function _gatherProgramParts(commentsArr: any[], fileName: string): void {
 				listener.name = Utils.Utils.trimTabs(match[1]);
 				listener.methodName = Utils.Utils.trimTabs(match[2]);
 				listeners.push(listener);
-			} else if (match = /(?:@(component|behavior))\(([a-zA-Z'-\[\]]*)+\)\n/.exec(codeBlock)) {
+			} else if (match = /(?:@(component|behavior))\('([a-zA-Z-\[\]]*)+'\)\n/.exec(codeBlock)) {
 				// Component or Behavior
 				if (match[1] === 'component') {
-					component = Utils.Utils.trimTabs(match[2]);
+					component.name = Utils.Utils.trimTabs(match[2]);
 				} else if (match[1] === 'behavior') {
 					console.log('got a behavior', match);
 				}
@@ -96,7 +98,7 @@ function _gatherProgramParts(commentsArr: any[], fileName: string): void {
 				computed.comment = comment;
 				computed.methodName = Utils.Utils.trimTabs(match[1]);
 				computed.name = Utils.Utils.trimTabs(match[1]);
-				properties.push(computed);
+				// properties.push(computed);
 			} else if (match = /(?:\t*@observe\([\s\S]+\){1})\n([\s\S]*?{)/.exec(codeBlock)) {
 				// Observer
 				// TODO we need to split out the property we're observing and just return
@@ -107,7 +109,10 @@ function _gatherProgramParts(commentsArr: any[], fileName: string): void {
 			}
 		}
 	}
-	console.log('writeComments break')
+	component.listeners = listeners;
+	component.methods = methods;
+	component.observers = observers;
+	component.properties = properties;
 }
 /**
  * Actually write out documentation. If it already exists, delete it first
@@ -120,9 +125,7 @@ function _writeDocumentation(pathInfo: any): void {
 	}
 	let writeStream = fs.createWriteStream(pathInfo.fullDocFilePath, { encoding: 'utf8' });
 	writeStream.on('open', () => {
-		_writeHtmlTop(writeStream, path.basename(pathInfo.fileName));
-		// TODO Write program parts here
-		_writeCloseHtml(writeStream);
+		writeStream.write(component.toMarkup());
 		writeStream.end();
 	});
 	writeStream.on('finish', () => {
@@ -131,35 +134,6 @@ function _writeDocumentation(pathInfo: any): void {
 	writeStream.on('close', () => {
 		console.log('Write stream closed');
 	});
-}
-/**
- * write the top portion of the html (i.e. dom-module, template, style, script)
- * @param {any} writeStream
- * @param {any} fileName
- */
-function _writeHtmlTop(writeStream: fs.WriteStream, fileName: string): void {
-	let ext = fileName.split('.');
-	let fileNameOnly = ext[0];
-	let htmlStr = '<dom-module id="' + fileNameOnly + '">\n';
-	htmlStr += '<template>\n';
-	htmlStr += '<style></style>\n';
-	htmlStr += '<script>\n';
-	htmlStr += '(function() {\n';
-	htmlStr += 'Polymer({\n';
-	htmlStr += 'is:\'' + '\'\n';
-	writeStream.write(htmlStr);
-}
-/**
- * Close the html file out (i.e. /script, /template, /dom-module)
- * @param {any} writeStream
- */
-function _writeCloseHtml(writeStream: fs.WriteStream): void {
-	let htmlStr = '});\n';
-	htmlStr += '})();\n';
-	htmlStr += '</script>\n';
-	htmlStr += '</template>\n';
-	htmlStr += '</dom-module>\n';
-	writeStream.write(htmlStr);
 }
 /**
  * Get the next 10 lines from where the code starts and run the callback. The relevant 10 lines

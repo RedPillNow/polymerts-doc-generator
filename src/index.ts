@@ -18,6 +18,7 @@ function start(fileName: string, docPath: string): void {
 	// let comments: any[] = getComments(pathInfo.fileName)
 	let component: Component = _gatherProgramParts(pathInfo.fileName);
 	// _writeDocumentation(pathInfo, component);
+	return pathInfo.fullDocFilePath;
 }
 /**
  * Get the pieces of the path for fileName
@@ -169,4 +170,3 @@ start(dataFile, docFile);
 
 // Expose these methods externally
 module.exports.start = start;
-module.exports.getComments = getComments;

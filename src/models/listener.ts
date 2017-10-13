@@ -21,9 +21,10 @@ export class Listener extends ProgramPart {
 	}
 
 	toMarkup() {
-		let listenerStr = this.name;
-		listenerStr += ':';
-		listenerStr += this.methodName;
+		let listenerStr = '\n' + this.comment.toMarkup();
+		listenerStr += '\n"' + this.name + '"';
+		listenerStr += ': ';
+		listenerStr += '"' + this.methodName + '"';
 		return listenerStr;
 	}
 }

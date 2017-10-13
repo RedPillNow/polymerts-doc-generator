@@ -69,7 +69,7 @@ export class Comment extends ProgramPart {
 	toMarkup() {
 		let markup = '/**\n';
 		markup += this.commentText;
-		markup += '**/\n';
+		markup += '**/';
 		return markup;
 	}
 }

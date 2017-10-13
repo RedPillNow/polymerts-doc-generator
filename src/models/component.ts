@@ -1,18 +1,27 @@
 import { ProgramPart } from './program-part';
 import { Property } from './property';
 import { Observer } from './observer';
-// import { Behavior } from './behavior';
+import { Behavior } from './behavior';
 import { Listener } from './listener';
 
 export class Component extends ProgramPart {
-	private _listeners: Listener[];
-	private _methods: any[];
+	private _behaviors: Behavior[];
+	private _listeners: Listener[] = [];
+	private _methods: any[] = [];
 	private _name: string;
-	private _observers: Observer[];
-	private _properties: Property[];
+	private _observers: Observer[] = [];
+	private _properties: Property[] = [];
+
+	get behaviors() {
+		return this._behaviors || [];
+	}
+
+	set behaviors(behaviors) {
+		this._behaviors = behaviors;
+	}
 
 	get listeners() {
-		return this._listeners;
+		return this._listeners || [];
 	}
 
 	set listeners(listeners) {
@@ -20,7 +29,7 @@ export class Component extends ProgramPart {
 	}
 
 	get methods() {
-		return this._methods;
+		return this._methods || [];
 	}
 
 	set methods(methods) {
@@ -36,7 +45,7 @@ export class Component extends ProgramPart {
 	}
 
 	get observers() {
-		return this._observers;
+		return this._observers || [];
 	}
 
 	set observers(observers) {
@@ -59,9 +68,15 @@ export class Component extends ProgramPart {
 		componentStr += '(function() {\n';
 		componentStr += '\tPolymer({\n';
 		componentStr += '\t\tis: "' + this.name + '",\n';
-		componentStr += this._writeProperties();
-		// TODO parse all the different parts here
+		if (this.properties && this.properties.length > 0) {
+			componentStr += this._writeProperties();
+		}
+		if (this.listeners && this.listeners.length > 0) {
+			componentStr += '\n' + this._writeListeners();
+		}
+		if (this.observers && this.observers.length > 0) {
 
+		}
 		componentStr += '\t});\n';
 		componentStr += '})();\n';
 		componentStr += '\t\t</script>\n';
@@ -79,7 +94,20 @@ export class Component extends ProgramPart {
 				propertiesStr += ',';
 			}
 		}
-		propertiesStr += '\t\t},'
+		propertiesStr += '\n\t\t},'
 		return propertiesStr;
+	}
+
+	private _writeListeners(): string {
+		let listenersStr = '\t\tlisteners: {\n';
+		for (let i = 0; i < this.listeners.length; i++) {
+			let listener = this.listeners[i];
+			listenersStr += '\t\t\t' + listener.toMarkup();
+			if (i < (this.listeners.length - 1)) {
+				listenersStr += ',';
+			}
+		}
+		listenersStr += '\n\t\t},\n'
+		return listenersStr;
 	}
 }

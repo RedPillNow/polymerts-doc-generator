@@ -10,41 +10,17 @@ export enum ProgramType {
 }
 
 export class Comment extends ProgramPart {
-	private _commentEndLine: number;
 	private _commentObj: any;
-	private _commentStartLine: number;
 	private _commentText: string;
 	private _isFor: ProgramType;
 
-	constructor(comment) {
+	constructor(comment?) {
 		super();
-		this._commentObj = comment.comment;
-	}
-
-	get commentEndLine() {
-		if (this._commentEndLine === null || this._commentEndLine === undefined && this.commentObj) {
-			this._commentEndLine = this.commentObj.end;
-		}
-		return this._commentEndLine;
-	}
-
-	set commentEndLine(commentEndLine) {
-		this._commentEndLine = commentEndLine;
+		this._commentObj = comment ? comment.comment : null;
 	}
 
 	get commentObj() {
 		return this._commentObj;
-	}
-
-	get commentStartLine() {
-		if (this._commentStartLine === null || this._commentStartLine === undefined && this.commentObj) {
-			this._commentStartLine = this.commentObj.begin;
-		}
-		return this._commentStartLine;
-	}
-
-	set commentStartLine(commentStartLine) {
-		this._commentStartLine = commentStartLine;
 	}
 
 	get commentText() {

@@ -6,11 +6,11 @@ import { Listener } from './listener';
 
 export class Component extends ProgramPart {
 	private _behaviors: Behavior[];
-	private _listeners: Listener[] = [];
-	private _methods: any[] = [];
+	private _listeners: Listener[];
+	private _methods: any[];
 	private _name: string;
-	private _observers: Observer[] = [];
-	private _properties: Property[] = [];
+	private _observers: Observer[];
+	private _properties: Property[];
 
 	get behaviors() {
 		return this._behaviors || [];

@@ -8,6 +8,8 @@ import { Listener } from './models/listener';
 import { ComputedProperty } from './models/computed';
 import { Observer } from './models/observer';
 import { Component } from './models/component';
+import { Function } from './models/function';
+import { Behavior } from './models/behavior'
 
 /**
  * Build the documentation
@@ -50,20 +52,147 @@ function getComments(fileName: string): any[] {
 	let comments = parse(readFile) || [];
 	return comments;
 }
-
-function _gatherProgramParts(fileName) {
+/**
+ * This will gather all the different program parts and add them to a
+ * Component instance
+ * @param {string} fileName
+ * @returns {Component}
+ * @todo ack this is UGLY and HUGE
+ */
+function _gatherProgramParts(fileName: string): Component {
 	let component = new Component();
 	const readFile: string = fs.readFileSync(fileName, 'utf8');
-	const startComment = /^\/\*\*?/;
-	const endComment = /^\*\//;
+	// comment
+	let comment: Comment = null;
+	const startComment = /^\s*\/\*\*?/;
+	const endComment = /(?:\s)*(?:\*\/)/;
+	let isComment = false;
+	// method
+	let method: Function = null;
+	const startMethod = /^\s*((?:\w+)*\s*\((?:[^),]*)(?:\s*,\s*[^),]*)*\)\s*{)\n/;
+	const endMethod = /\s*}/;
+	let isMethod = false;
+	let isBlockInMethod = false;
+	// component & behavior
+	const startComponent = /\s*(?:@component)\s*\((?:['"]{1}(.*)['"]{1})\)/;
+	const startBehavior = /\s*(?:@behavior)\s*\((.*)\)/;
+	// property
+	let property: Property = null;
+	let propertyParams = {};
+	const startProperty = /\s*@(?:property){1}\s*\(\s*{\n/;
+	const endProperty = /\s*(\w*):\s*([a-zA-Z.-]*);/;
+	let isProperty = false;
+	// observer
+	let observer: Observer = null;
+	let isObserver = false;
+	const startObserver = null;
+	const endObserver = null;
+	// listener
+	let listener: Listener = null;
+	let isListener = false;
+	const startListener = null;
+	const endListener = null;
+	// placeholder variables
+	let behaviors = [];
+	let listeners = [];
+	let methods = [];
+	let observers = [];
+	let properties = [];
 
 	const lines = readFile.split(/[\r\n]/);
 	for (let i = 0; i < lines.length; i++) {
-
+		let line = lines[i];
+		let lineNum = i + 1;
+		if (!isComment && startComment.test(line)) {
+			isComment = true;
+			comment = new Comment();
+			comment.startLineNum = lineNum;
+			comment.commentText = line;
+		}
+		if (isComment && endComment.test(line)) {
+			comment.commentText += line;
+			comment.endLineNum = lineNum;
+			isComment = false;
+		}
+		if (isComment && lineNum > comment.startLineNum) {
+			comment.commentText += line;
+		}
+		// Component - May have comments so must come after comment
+		if (startComponent.test(line)) {
+			let compMatch = startComponent.exec(line);
+			if (compMatch && compMatch.length > 0) {
+				component.name = compMatch[1];
+				component.startLineNum = lineNum;
+				component.comment = comment;
+				comment = null;
+			}
+		} // TODO Get the component class name and what it extends
+		// Behavior
+		if (startBehavior.test(line)) {
+			let behMatch = startBehavior.exec(line);
+			if (behMatch && behMatch.length > 0) {
+				let behavior = new Behavior();
+				behavior.name = behMatch[1];
+				behavior.comment = comment;
+				behavior.startLineNum = lineNum;
+				behavior.endLineNum = lineNum;
+				behaviors.push(behavior);
+				comment = null;
+			}
+		}
+		// Property
+		if (!isProperty && startProperty.test(line)) {
+			isProperty = true;
+			property = new Property();
+			property.comment = comment;
+			property.startLineNum = lineNum;
+			comment = null;
+		}
+		if (isProperty && endProperty.test(line)) {
+			let propNameMatch = endProperty.exec(line);
+			property.name = propNameMatch[1];
+			property.type = propNameMatch[2];
+			property.params = JSON.stringify(propertyParams);
+			properties.push(property);
+			propertyParams = {};
+			isProperty = false;
+		}
+		if (isProperty && lineNum > property.startLineNum) {
+			let paramMatch = /\s*(\w*):\s*([a-zA-Z,-]*)/.exec(line);
+			if (paramMatch && paramMatch.length > 0) {
+				let accept = ['type', 'notify', 'value', 'observer', 'computed', 'reflectToAttribute'];
+				if (accept.indexOf(paramMatch[1]) > -1) {
+					propertyParams[paramMatch[1]] = paramMatch[2];
+				}
+			}
+		}
+		// Method
+		if (!isMethod && startMethod.test(line)) {
+			isMethod = true;
+			method = new Function();
+			method.signature = line;
+			method.startLineNum = lineNum;
+		}
+		if (isMethod && endMethod.test(line)) {
+			if (!isBlockInMethod) {
+				method.endLineNum = lineNum;
+				isBlockInMethod = false;
+				isMethod = false;
+			} else {
+				isBlockInMethod = false;
+			}
+		}
+		if (isMethod && !isBlockInMethod) {
+			isBlockInMethod = /(if|for|while)\s*/.test(line);
+		}
 	}
+	component.behaviors = behaviors;
+	component.listeners = listeners;
+	component.methods = methods;
+	component.observers = observers;
+	component.properties = properties;
 	return component;
 }
-
 /**
  * Write out the comments we found along with the function call
  * @param {any} commentsArr
@@ -74,7 +203,7 @@ function _gatherProgramParts_DEPRECATED(commentsArr: any[], fileName: string): C
 	let component = new Component();
 	for (let i = 0; i < commentsArr.length; i++) {
 		let comment = new Comment(commentsArr[i]);
-		let lines = _getLines(comment.commentStartLine - 2, fileName);
+		let lines = _getLines(comment.startLineNum - 2, fileName);
 		if (lines && lines.length > 0) {
 			let codeBlock = lines.join('\n');
 			let match = null;
@@ -147,6 +276,7 @@ function _writeDocumentation(pathInfo: any, component: Component): void {
  * @param {any} startLineNum
  * @param {any} fileName
  * @param {function} callback returns 2 parameters (err, relevantLines)
+ * @deprecated
  */
 function _getLines(startLineNum: number, fileName: string): string[] {
 	let relevantLines = [];

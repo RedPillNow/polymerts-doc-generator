@@ -6,6 +6,7 @@ import { Listener } from './listener';
 
 export class Component extends ProgramPart {
 	private _behaviors: Behavior[];
+	private _className: string;
 	private _listeners: Listener[];
 	private _methods: any[];
 	private _name: string;
@@ -18,6 +19,14 @@ export class Component extends ProgramPart {
 
 	set behaviors(behaviors) {
 		this._behaviors = behaviors;
+	}
+
+	get className() {
+		return this._className;
+	}
+
+	set className(className) {
+		this._className = className;
 	}
 
 	get listeners() {

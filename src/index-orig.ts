@@ -218,7 +218,7 @@ function _gatherProgramParts_DEPRECATED(commentsArr: any[], fileName: string): C
 				// Listener
 				let listener = new Listener();
 				listener.comment = comment;
-				listener.name = Utils.Utils.trimTabs(match[1]);
+				// listener.name = Utils.Utils.trimTabs(match[1]);
 				listener.methodName = Utils.Utils.trimTabs(match[2]);
 				component.listeners.push(listener);
 			} else if (match = /(?:@(component|behavior))\('([a-zA-Z-\[\]]*)+'\)\n/.exec(codeBlock)) {

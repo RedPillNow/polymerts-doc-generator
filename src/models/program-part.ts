@@ -1,9 +1,11 @@
 import { Comment } from './comment';
+import * as ts from 'typescript';
 
 export abstract class ProgramPart {
 	private _comment: Comment;
-	private _startLineNum: number;
 	private _endLineNum: number;
+	private _startLineNum: number;
+	private _tsNode: ts.Node;
 
 	abstract toMarkup(): string;
 
@@ -29,5 +31,13 @@ export abstract class ProgramPart {
 
 	set startLineNum(startLineNum) {
 		this._startLineNum = startLineNum;
+	}
+
+	get tsNode() {
+		return this._tsNode;
+	}
+
+	set tsNode(tsNode) {
+		this._tsNode = tsNode;
 	}
 }

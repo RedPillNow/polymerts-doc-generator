@@ -3,14 +3,6 @@ import { Property } from './property';
 export class ComputedProperty extends Property {
 	private _methodName: any;
 
-	get name() {
-		return this._name;
-	}
-
-	set name(name) {
-		this._name = name;
-	}
-
 	get methodName() {
 		return this._methodName;
 	}

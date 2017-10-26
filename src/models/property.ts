@@ -28,13 +28,27 @@ export class Property extends ProgramPart {
 	set type(type) {
 		this._type = type;
 	}
+	// TODO: Take into account a 'value' param which is a function. Seems
+	// we're removing the {}
+	private _parseParams(): string {
+		let partsArr = this.params ? this.params.split(',') : [];
+		let newParamStr = '{\n';
+		for (let i = 0; i < partsArr.length; i++) {
+			let part = partsArr[i];
+			newParamStr += '\t\t\t\t' + part.replace(/[/{/}\n\t]/g, '');
+			newParamStr += (i + 1) < partsArr.length ? ',\n' : '\n';
+		}
+		newParamStr += '\t\t\t}';
+		return newParamStr;
+	}
 
 	toMarkup() {
 		let nameParts = this.name.split(':');
-		let propStr = '\n' + this.comment.toMarkup();
+		let comment = this.comment ? '\n' + this.comment.toMarkup() : '\n';
+		let propStr = comment;
 		propStr += '\t\t\t' + nameParts[0];
 		propStr += ': ';
-		propStr += this.params;
+		propStr += this._parseParams();
 		return propStr;
 	}
 }

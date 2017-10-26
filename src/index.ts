@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as ts from 'typescript';
-import * as Utils from './lib/utils'; // TODO: Figure out why this is Utils.Utils.???
+import * as Utils from './lib/utils';
 import { Behavior } from './models/behavior'
 import { Comment } from './models/comment';
 import { Component } from './models/component';
@@ -10,74 +10,37 @@ import { Function } from './models/function';
 import { Listener } from './models/listener';
 import { Observer } from './models/observer';
 import { Property } from './models/property';
+import { ProgramType } from './models/comment';
 
-// TODO: Need to figure how to determine the correct line number from a ts.Node. Seems
-// .getStart and .getEnd are not line numbers but something else
-
-// TODO: Need to figure out how to get the comments. Seems they are not part of a node's
-// children. Even though there are ts.SyntaxKind enums for jsDoc and they show up in the
-// object as jsDoc
-
+// Variables we can read/update from anywhere
+let component: Component = null;
 let _behaviors: Behavior[] = [];
 let _functions: Function[] = [];
 let _listeners: Listener[] = [];
 let _observers: Observer[] = [];
 let _properties: Property[] = [];
 
-function start(fileName: string, docPath: string): void {
-	let pathInfo = _getPathInfo(fileName, docPath);
+export function start(fileName: string, docPath: string): void {
+	let pathInfo = Utils._getPathInfo(fileName, docPath);
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
-	let component = getComponent(sourceFile);
+	_parse(sourceFile);
 	_writeDocumentation(pathInfo, component);
 	return pathInfo.fullDocFilePath;
-}
-/**
- * Get the pieces of the path for fileName
- * @param {string} fileName
- * @returns {any} pathInfo
- * @property {string} pathInfo.fileName - The original source file name
- * @property {string} pathInfo.dirName - The directory name for fileName
- * @property {string} pathInfo.docFileName - The generated documentation file name
- * @property {string} pathInfo.fullDocFilePath - The full path to pathInfo.docFileName
- */
-function _getPathInfo(fileName: string, docPath: string): any {
-	let pathInfo: any = {};
-	if (fileName) {
-		pathInfo.fileName = fileName;
-		pathInfo.dirName = path.dirname(docPath);
-		pathInfo.docFileName = 'doc_' + path.basename(fileName) + '.html';
-		pathInfo.fullDocFilePath = path.join(pathInfo.dirName, pathInfo.docFileName);
-	}
-	return pathInfo;
 }
 /**
  * Parse the source file and build out the component and all it's parts
  * @param {ts.SourceFile} sourceFile The ts.SourceFile
  */
-function getComponent(sourceFile: ts.SourceFile): any {
-	let component = new Component();
+function _parse(sourceFile: ts.SourceFile) {
+	component = new Component();
 	let nodes = 0;
-	parseNode(sourceFile);
-
-	function parseNode(node: ts.Node) {
+	let parseNode = (node: ts.Node) => {
 		// console.log('getComponent.parseNode.node.kind=', (<any>ts).SyntaxKind[node.kind], '=', node.kind);
 		// console.log('node text=', node.getText());
 		switch (node.kind) {
 			case ts.SyntaxKind.ClassDeclaration:
 				// console.log('class declaration');
-				component.tsNode = node;
-				let clazz: ts.ClassDeclaration = <ts.ClassDeclaration>node;
-				component.className = clazz.name.getText();
-				component.startLineNum = node.getStart(sourceFile);
-				component.endLineNum = node.getEnd();
-				if (node.decorators && node.decorators.length > 0) {
-					node.decorators.forEach((decorator: ts.Decorator) => {
-						// console.log('decorator', decorator);
-						let exp: ts.Expression = decorator.expression;
-						let decoratorMatch = /\s*(?:component)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(exp.getText());
-						component.name = decoratorMatch ? decoratorMatch[1] : null;
-					});
-				}
+				_initComponent(node);
 				break;
 			case ts.SyntaxKind.PropertyDeclaration:
 				_getProperty(node);
@@ -89,12 +52,45 @@ function getComponent(sourceFile: ts.SourceFile): any {
 		nodes++;
 		ts.forEachChild(node, parseNode);
 	}
+	parseNode(sourceFile);
 	console.log('looped through', nodes, 'nodes');
 	component.behaviors = _behaviors;
 	component.methods = _functions;
 	component.listeners = _listeners;
 	component.observers = _observers;
 	component.properties = _properties;
+}
+/**
+ * Populate the component with the values from the node
+ * @param {ts.Node} node
+ * @returns {Component}
+ */
+function _initComponent(node: ts.Node) {
+	if (node && node.decorators && node.decorators.length > 0) {
+		let clazz: ts.ClassDeclaration = <ts.ClassDeclaration>node;
+		component.tsNode = node;
+		component.className = clazz.name.getText();
+		component.startLineNum = Utils._getStartLineNumber(node);
+		component.endLineNum = Utils._getEndLineNumber(node);
+		component.comment ? component.comment.isFor = ProgramType.Component : null;
+		if (node.decorators && node.decorators.length > 0) {
+			node.decorators.forEach((decorator: ts.Decorator) => {
+				// console.log('decorator', decorator);
+				let exp: ts.Expression = decorator.expression;
+				let componentMatch = /\s*(?:component)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(exp.getText());
+				component.name = componentMatch ? componentMatch[1] : null;
+				let behaviorMatch = /\s*(?:behavior)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(exp.getText());
+				if (behaviorMatch && behaviorMatch.length > 0) {
+					let behave = new Behavior();
+					behave.tsNode = decorator;
+					behave.startLineNum = Utils._getStartLineNumber(decorator);
+					behave.endLineNum = Utils._getEndLineNumber(decorator);
+					behave.name = behaviorMatch[1];
+					_behaviors.push(behave);
+				}
+			});
+		}
+	}
 	return component;
 }
 /**
@@ -106,14 +102,15 @@ function _getProperty(node: ts.Node) {
 		let tsProp = <ts.PropertyDeclaration>node;
 		let prop = new Property();
 		prop.tsNode = node;
-		prop.startLineNum = node.getStart(node.getSourceFile());
-		prop.endLineNum = node.getEnd();
+		prop.startLineNum = Utils._getStartLineNumber(node);
+		prop.endLineNum = Utils._getEndLineNumber(node);
 		prop.name = tsProp.name.getText();
+		prop.comment ? prop.comment.isFor = ProgramType.Property : null;
 		let parseChildren = (childNode: ts.Node) => {
 			// console.log('_getProperty.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind);
 			if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
 				let objExp = <ts.ObjectLiteralExpression>childNode;
-				let objLiteralObj = Utils.Utils._getObjectLiteralString(objExp);
+				let objLiteralObj = Utils._getObjectLiteralString(objExp);
 				prop.params = objLiteralObj.str;
 				prop.type = objLiteralObj.type;
 			}
@@ -131,9 +128,9 @@ function _getProperty(node: ts.Node) {
  * @param {ts.Node} node
  */
 function _getMethod(node: ts.Node) {
-	console.log('method declaration', node.getText());
 	if (node && node.kind === ts.SyntaxKind.MethodDeclaration) {
 		let method: ts.MethodDeclaration = <ts.MethodDeclaration>node;
+		// console.log('_getMethod for', method.name.getText(), ts.getLineAndCharacterOfPosition(node.getSourceFile(), node.getStart()));
 		if (isComputedProperty(method)) {
 			let computed: ComputedProperty = _getComputedProperty(method);
 			if (computed) {
@@ -157,20 +154,8 @@ function _getMethod(node: ts.Node) {
 		}
 	}
 }
-function _getFunction(node: ts.MethodDeclaration): Function {
-	if (node) {
-		let func: Function = new Function();
-		func.tsNode = node;
-		func.methodName = node.name.getText();;
-		func.startLineNum = node.getStart(node.getSourceFile());
-		func.endLineNum = node.getEnd();
-		func.returnType = node.type ? node.type.getText() : null;
-		return func;
-	}
-	return null;
-}
 /**
- * Get a computed property of the node is a ComputedProperty
+ * Get a computed property if the node is a ComputedProperty
  * @param {ts.MethodDeclaration} node
  * @returns {ComputedProperty}
  */
@@ -178,13 +163,15 @@ function _getComputedProperty(node: ts.MethodDeclaration): ComputedProperty {
 	if (node) {
 		let computed: ComputedProperty = new ComputedProperty();
 		computed.tsNode = node;
-		computed.methodName = node.name.getText();
-		computed.startLineNum = node.getStart(node.getSourceFile());
-		computed.endLineNum = node.getEnd();
+		computed.name = node.name.getText();
+		computed.methodName = '_get' + Utils.capitalizeFirstLetter(node.name.getText());
+		computed.startLineNum = Utils._getStartLineNumber(node);
+		computed.endLineNum = Utils._getEndLineNumber(node);
+		computed.comment ? computed.comment.isFor = ProgramType.Computed : null;
 		let parseChildren = (childNode: ts.Node) => {
 			if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
 				let objExp = <ts.ObjectLiteralExpression>childNode;
-				let objLitObj = Utils.Utils._getObjectLiteralString(objExp);
+				let objLitObj = Utils._getObjectLiteralString(objExp);
 				computed.params = objLitObj.str;
 				computed.type = objLitObj.type;
 			}
@@ -206,8 +193,9 @@ function _getListener(node: ts.MethodDeclaration): Listener {
 		let listener: Listener = new Listener();
 		listener.tsNode = node;
 		listener.methodName = node.name.getText();
-		listener.startLineNum = node.getStart(node.getSourceFile());
-		listener.endLineNum = node.getEnd();
+		listener.startLineNum = Utils._getStartLineNumber(node);
+		listener.endLineNum = Utils._getEndLineNumber(node);
+		listener.comment ? listener.comment.isFor = ProgramType.Listener : null;
 		if (node.decorators && node.decorators.length > 0) {
 			node.decorators.forEach((decorator: ts.Decorator, idx) => {
 				let parseChildren = (decoratorChildNode) => {
@@ -236,9 +224,10 @@ function _getObserver(node: ts.MethodDeclaration): Observer {
 	if (node) {
 		let observer: Observer = new Observer();
 		observer.tsNode = node;
-		observer.startLineNum = node.getStart(node.getSourceFile());
-		observer.endLineNum = node.getEnd();
+		observer.startLineNum = Utils._getStartLineNumber(node);
+		observer.endLineNum = Utils._getEndLineNumber(node);
 		observer.methodName = node.name.getText();
+		observer.comment ? observer.comment.isFor = ProgramType.Observer : null;
 		if (node.decorators && node.decorators.length > 0) {
 			node.decorators.forEach((decorator: ts.Decorator, idx) => {
 				let parseChildren = (decoratorChildNode: ts.Node) => {
@@ -254,6 +243,36 @@ function _getObserver(node: ts.MethodDeclaration): Observer {
 			});
 		}
 		return observer;
+	}
+	return null;
+}
+/**
+ * Get a function if the node is a MethodDeclaration and is not a
+ * computed property, observer, listener, etc. Also, it's parent must be
+ * the "component's" node
+ * @param {ts.MethodDeclaration} node
+ * @returns {Function}
+ */
+function _getFunction(node: ts.MethodDeclaration): Function {
+	if (node) {
+		let func: Function = new Function();
+		func.tsNode = node;
+		func.methodName = node.name.getText();;
+		func.startLineNum = Utils._getStartLineNumber(node);
+		func.endLineNum = Utils._getEndLineNumber(node);
+		let params = [];
+		let parseChildren = (childNode: ts.Node) => {
+			// console.log('_getFunction.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind)
+			if (childNode.kind === ts.SyntaxKind.Parameter) {
+				let param = <ts.ParameterDeclaration>childNode;
+				params.push(childNode.getText());
+			}
+			ts.forEachChild(childNode, parseChildren);
+		}
+		parseChildren(node);
+		func.comment ? func.comment.isFor = ProgramType.Function : null;
+		func.parameters = params;
+		return func;
 	}
 	return null;
 }
@@ -337,9 +356,8 @@ function _writeDocumentation(pathInfo: any, component: Component): void {
 }
 
 // For Testing Purposes
-let dataFile = path.join(__dirname, '..', 'src', 'data', 'now-address.ts');
+// let dataFile = path.join(__dirname, '..', 'src', 'data', 'now-address.ts');
+let dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
 let docFile = path.join(__dirname, 'docs', '*');
 start(dataFile, docFile);
 
-// Expose these methods externally
-module.exports.start = start;

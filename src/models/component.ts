@@ -70,53 +70,100 @@ export class Component extends ProgramPart {
 	}
 
 	toMarkup() {
-		let componentStr = '<dom-module id="' + this.name + '">\n';
-		componentStr += '\t<template>\n';
-		componentStr += '\t\t<style></style>\n';
-		componentStr += '\t\t<script>\n';
-		componentStr += '(function() {\n';
-		componentStr += '\tPolymer({\n';
-		componentStr += '\t\tis: "' + this.name + '",\n';
+		let componentStr = this._writeHead();
+		if (this.behaviors && this.behaviors.length > 0) {
+			componentStr += this._writeBehaviors();
+		}
 		if (this.properties && this.properties.length > 0) {
 			componentStr += this._writeProperties();
 		}
+		if (this.observers && this.observers.length > 0) {
+			componentStr += this._writeObservers();
+		}
 		if (this.listeners && this.listeners.length > 0) {
-			componentStr += '\n' + this._writeListeners();
+			componentStr += this._writeListeners();
 		}
 		if (this.observers && this.observers.length > 0) {
 
 		}
-		componentStr += '\t});\n';
-		componentStr += '})();\n';
-		componentStr += '\t\t</script>\n';
-		componentStr += '\t</template>\n';
-		componentStr += '</dom-module>\n';
+		if (this.methods && this.methods.length > 0) {
+			componentStr += this._writeMethods();
+		}
+		componentStr += this._writeFoot();
 		return componentStr;
+	}
+
+	private _writeHead(): string {
+		let headStr = '<dom-module id="' + this.name + '">\n';
+		headStr += '\t<template>\n';
+		headStr += '\t\t<style></style>\n';
+		headStr += '\t\t<script>\n';
+		headStr += '(function() {\n';
+		headStr += '\tPolymer({\n';
+		headStr += '\t\tis: "' + this.name + '",\n';
+		return headStr;
+	}
+
+	private _writeFoot(): string {
+		let footStr = '\t});\n';
+		footStr += '})();\n';
+		footStr += '\t\t</script>\n';
+		footStr += '\t</template>\n';
+		footStr += '</dom-module>\n';
+		return footStr;
 	}
 
 	private _writeProperties(): string {
 		let propertiesStr = '\t\tproperties: {';
 		for (let i = 0; i < this.properties.length; i++) {
 			let prop: Property = this.properties[i];
-			propertiesStr += '\t\t\t' + prop.toMarkup();
-			if (i < (this.properties.length - 1)) {
-				propertiesStr += ',';
-			}
+			propertiesStr += prop.toMarkup();
+			propertiesStr += (i + 1) < this.properties.length ? ',' : '';
 		}
-		propertiesStr += '\n\t\t},'
+		propertiesStr += '\n\t\t},';
 		return propertiesStr;
 	}
 
+	private _writeBehaviors(): string {
+		let behaviorsStr = '\n\t\tbehaviors: [\n';
+		for (let i = 0; i < this.behaviors.length; i++) {
+			let behavior = this.behaviors[i];
+			behaviorsStr += behavior.toMarkup();
+			behaviorsStr += (i + 1) < this.properties.length ? ',' : '';
+		}
+		behaviorsStr += '\n\t\t],'
+		return behaviorsStr;
+	}
+
 	private _writeListeners(): string {
-		let listenersStr = '\t\tlisteners: {\n';
+		let listenersStr = '\n\t\tlisteners: {\n';
 		for (let i = 0; i < this.listeners.length; i++) {
 			let listener = this.listeners[i];
-			listenersStr += '\t\t\t' + listener.toMarkup();
-			if (i < (this.listeners.length - 1)) {
-				listenersStr += ',';
-			}
+			listenersStr += listener.toMarkup();
+			listenersStr += (i + 1) < this.listeners.length ? ',\n' : '';
 		}
-		listenersStr += '\n\t\t},\n'
+		listenersStr += '\n\t\t},\n';
 		return listenersStr;
+	}
+
+	private _writeMethods(): string {
+		let methodsStr = '';
+		for (let i = 0; i < this.methods.length; i++) {
+			let method = this.methods[i];
+			methodsStr += method.toMarkup();
+			methodsStr += (i + 1) < this.methods.length ? ',\n' : '\n';
+		}
+		return methodsStr;
+	}
+
+	private _writeObservers(): string {
+		let observersStr = '\n\t\tobservers: [\n';
+		for (let i = 0; i < this.observers.length; i++) {
+			let observer = this.observers[i];
+			observersStr += observer.toMarkup();
+			observersStr += (i + 1) < this.observers.length ? ',\n' : '';
+		}
+		observersStr += '\n\t\t\],';
+		return observersStr;
 	}
 }

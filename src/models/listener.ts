@@ -39,8 +39,10 @@ export class Listener extends ProgramPart {
 	}
 
 	toMarkup() {
-		let listenerStr = '\n' + this.comment.toMarkup();
-		listenerStr += '\n"' + this.eventName + '"';
+		let comment = this.comment ? this.comment.toMarkup() : '';
+		let listenerStr = comment;
+		let eventName = this.eventName ? this.eventName.replace(/['"]/g, '') : '';
+		listenerStr += '\t\t\t"' + eventName + '"';
 		listenerStr += ': ';
 		listenerStr += '"' + this.methodName + '"';
 		return listenerStr;

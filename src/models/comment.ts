@@ -6,18 +6,17 @@ export enum ProgramType {
 	Component = "COMPONENT",
 	Behavior = "BEHAVIOR",
 	Listener = "LISTENER",
-	Observer = "OBSERVER"
+	Observer = "OBSERVER",
+	Function = "FUNCTION"
 }
 
-export class Comment extends ProgramPart {
+export class Comment {
 	private _commentObj: any;
 	private _commentText: string;
+	private _endLineNum: number;
 	private _isFor: ProgramType;
-
-	constructor(comment?) {
-		super();
-		this._commentObj = comment ? comment.comment : null;
-	}
+	private _startLineNum: number;
+	private _tags: string[];
 
 	get commentObj() {
 		return this._commentObj;
@@ -34,6 +33,14 @@ export class Comment extends ProgramPart {
 		this._commentText = commentText;
 	}
 
+	get endLineNum() {
+		return this._endLineNum;
+	}
+
+	set endLineNum(endLineNum) {
+		this._endLineNum = endLineNum;
+	}
+
 	get isFor() {
 		return this._isFor;
 	}
@@ -42,10 +49,59 @@ export class Comment extends ProgramPart {
 		this._isFor = isFor;
 	}
 
+	get startLineNum() {
+		return this._startLineNum;
+	}
+
+	set startLineNum(startLineNum) {
+		this._startLineNum = startLineNum;
+	}
+
+	get tags() {
+		return this._tags || [];
+	}
+
+	set tags(tags) {
+		this._tags = tags;
+	}
+
+	private _getIndent() {
+		let indentation = '\t\t\t';
+		switch (this.isFor) {
+			case ProgramType.Property:
+				indentation = '\t\t\t';
+				break;
+			case ProgramType.Function:
+				indentation = '\t\t';
+				break;
+			case ProgramType.Component:
+				indentation = '\t';
+				break;
+			case ProgramType.Listener:
+				indentation = '\t\t\t';
+				break;
+			case ProgramType.Behavior:
+				indentation = '\t\t\t';
+				break;
+			case ProgramType.Computed:
+				indentation = '\t\t\t';
+				break;
+			case ProgramType.Observer:
+				indentation = '\t\t\t';
+				break;
+		}
+		return indentation;
+	}
+
 	toMarkup() {
-		let markup = '/**\n';
-		markup += this.commentText;
-		markup += '**/';
+		let markup = this._getIndent() + '/**\n';
+		markup += this._getIndent() + ' * ';
+		markup += this.commentText.replace(/\n/g, '\n' + this._getIndent() + ' * ') + '\n';
+		for (let i = 0; i < this.tags.length; i++) {
+			let tag = this.tags[i];
+			markup += this._getIndent() + ' * ' + tag + '\n';
+		}
+		markup += this._getIndent() + ' */\n';
 		return markup;
 	}
 }

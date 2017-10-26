@@ -10,6 +10,25 @@ export abstract class ProgramPart {
 	abstract toMarkup(): string;
 
 	get comment() {
+		if (!this._comment && this.tsNode) {
+			let tsNodeAny = (<any>this.tsNode);
+			if (tsNodeAny.jsDoc && tsNodeAny.jsDoc.length > 0) {
+				let comm:Comment = new Comment();
+				comm.commentText = tsNodeAny.jsDoc[0].comment;
+				if (tsNodeAny.jsDoc[0].tags && tsNodeAny.jsDoc[0].tags.length > 0) {
+					let tags = [];
+					for (let i = 0; i < tsNodeAny.jsDoc[0].tags.length; i++) {
+						let tag = tsNodeAny.jsDoc[0].tags[i];
+						let tagName = '@' + tag.tagName.text;
+						let tagNameType = tag.typeExpression ? tag.typeExpression.getText() : tag.comment;
+						tagName += ' ' + tagNameType;
+						tags.push(tagName);
+					}
+					comm.tags = tags;
+				}
+				this._comment = comm;
+			}
+		}
 		return this._comment;
 	}
 

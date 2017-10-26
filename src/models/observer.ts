@@ -21,9 +21,15 @@ export class Observer extends ProgramPart {
 	}
 	// TODO Fix this
 	toMarkup() {
-		let observerStr = ''
-		observerStr += ':';
-		observerStr += this.methodName;
+		let comment = this.comment ? this.comment.toMarkup() : '';
+		let observerStr = comment;
+		observerStr += '\t\t\t"' + this.methodName + '(';
+		for (let i = 0; i < this.properties.length; i++) {
+			let prop = this.properties[i];
+			observerStr += prop;
+			observerStr += (i + 1) < this.properties.length ? ',' : '';
+		}
+		observerStr += ')"';
 		return observerStr;
 	}
 }

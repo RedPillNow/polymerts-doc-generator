@@ -12,7 +12,8 @@ export class Behavior extends ProgramPart {
 	}
 
 	toMarkup() {
-		let behaviorStr = '\n' + this.comment.toMarkup();
+		let comment = this.comment ? '\n' + this.comment.toMarkup() : '';
+		let behaviorStr = comment;
 		behaviorStr += this.name;
 		return behaviorStr;
 	}

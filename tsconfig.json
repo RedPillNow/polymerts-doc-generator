@@ -23,6 +23,7 @@
 	"exclude": [
 		"node_modules/**/*.*",
 		"src/data/*.ts",
-		"src/docs/*"
+		"src/docs/*",
+		"src/*-orig*.*"
 	]
 }

@@ -28,6 +28,7 @@ export class Property extends ProgramPart {
 	set type(type) {
 		this._type = type;
 	}
+
 	// TODO: Take into account a 'value' param which is a function. Seems
 	// we're removing the {}
 	private _parseParams(): string {

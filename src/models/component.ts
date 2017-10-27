@@ -100,7 +100,7 @@ export class Component extends ProgramPart {
 		headStr += '\t\t<script>\n';
 		headStr += '(function() {\n';
 		headStr += '\tPolymer({\n';
-		headStr += '\t\tis: "' + this.name + '",\n';
+		headStr += '\t\tis: "' + this.name + '",';
 		return headStr;
 	}
 
@@ -114,7 +114,7 @@ export class Component extends ProgramPart {
 	}
 
 	private _writeProperties(): string {
-		let propertiesStr = '\t\tproperties: {';
+		let propertiesStr = '\n\t\tproperties: {';
 		for (let i = 0; i < this.properties.length; i++) {
 			let prop: Property = this.properties[i];
 			propertiesStr += prop.toMarkup();
@@ -128,8 +128,8 @@ export class Component extends ProgramPart {
 		let behaviorsStr = '\n\t\tbehaviors: [\n';
 		for (let i = 0; i < this.behaviors.length; i++) {
 			let behavior = this.behaviors[i];
-			behaviorsStr += behavior.toMarkup();
-			behaviorsStr += (i + 1) < this.properties.length ? ',' : '';
+			behaviorsStr += '\t\t\t' + behavior.toMarkup();
+			behaviorsStr += (i + 1) < this.behaviors.length ? ',\n' : '';
 		}
 		behaviorsStr += '\n\t\t],'
 		return behaviorsStr;
@@ -142,7 +142,7 @@ export class Component extends ProgramPart {
 			listenersStr += listener.toMarkup();
 			listenersStr += (i + 1) < this.listeners.length ? ',\n' : '';
 		}
-		listenersStr += '\n\t\t},\n';
+		listenersStr += '\n\t\t},';
 		return listenersStr;
 	}
 
@@ -150,8 +150,8 @@ export class Component extends ProgramPart {
 		let methodsStr = '';
 		for (let i = 0; i < this.methods.length; i++) {
 			let method = this.methods[i];
-			methodsStr += method.toMarkup();
-			methodsStr += (i + 1) < this.methods.length ? ',\n' : '\n';
+			methodsStr += '\n' + method.toMarkup();
+			methodsStr += (i + 1) < this.methods.length ? ',' : '';
 		}
 		return methodsStr;
 	}

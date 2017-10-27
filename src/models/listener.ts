@@ -4,6 +4,7 @@ export class Listener extends ProgramPart {
 	private _elementId: string;
 	private _eventName: string;
 	private _eventDeclaration: string;
+	private _isExpression: boolean = false;
 	private _methodName: any;
 
 	get elementId() {
@@ -30,6 +31,14 @@ export class Listener extends ProgramPart {
 		this._eventName = name;
 	}
 
+	get isExpression() {
+		return this._isExpression;
+	}
+
+	set isExpression(isExpression) {
+		this._isExpression = isExpression;
+	}
+
 	get methodName() {
 		return this._methodName;
 	}
@@ -37,11 +46,15 @@ export class Listener extends ProgramPart {
 	set methodName(methodName) {
 		this._methodName = methodName;
 	}
-
+	// TODO: If the listener has an expression as it's name, we need
+	// to render it as 'NowElement.NOW_ERROR_EVENT: _handleError'
 	toMarkup() {
 		let comment = this.comment ? this.comment.toMarkup() : '';
 		let listenerStr = comment;
 		let eventName = this.eventName ? this.eventName.replace(/['"]/g, '') : '';
+		if (this.isExpression) {
+			eventName = this.eventDeclaration;
+		}
 		listenerStr += '\t\t\t"' + eventName + '"';
 		listenerStr += ': ';
 		listenerStr += '"' + this.methodName + '"';

@@ -21,7 +21,7 @@ let _observers: Observer[] = [];
 let _properties: Property[] = [];
 
 export function start(fileName: string, docPath: string): void {
-	let pathInfo = Utils._getPathInfo(fileName, docPath);
+	let pathInfo = Utils.getPathInfo(fileName, docPath);
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
 	_parse(sourceFile);
 	_writeDocumentation(pathInfo, component);
@@ -40,7 +40,9 @@ function _parse(sourceFile: ts.SourceFile) {
 		switch (node.kind) {
 			case ts.SyntaxKind.ClassDeclaration:
 				// console.log('class declaration');
-				_initComponent(node);
+				if (node.decorators && node.decorators.length > 0) {
+					_initComponent(node);
+				}
 				break;
 			case ts.SyntaxKind.PropertyDeclaration:
 				_getProperty(node);
@@ -70,21 +72,23 @@ function _initComponent(node: ts.Node) {
 		let clazz: ts.ClassDeclaration = <ts.ClassDeclaration>node;
 		component.tsNode = node;
 		component.className = clazz.name.getText();
-		component.startLineNum = Utils._getStartLineNumber(node);
-		component.endLineNum = Utils._getEndLineNumber(node);
+		component.startLineNum = Utils.getStartLineNumber(node);
+		component.endLineNum = Utils.getEndLineNumber(node);
 		component.comment ? component.comment.isFor = ProgramType.Component : null;
 		if (node.decorators && node.decorators.length > 0) {
 			node.decorators.forEach((decorator: ts.Decorator) => {
 				// console.log('decorator', decorator);
 				let exp: ts.Expression = decorator.expression;
+				let expText = exp.getText();
 				let componentMatch = /\s*(?:component)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(exp.getText());
-				component.name = componentMatch ? componentMatch[1] : null;
-				let behaviorMatch = /\s*(?:behavior)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(exp.getText());
-				if (behaviorMatch && behaviorMatch.length > 0) {
+				let behaviorMatch = /\s*(?:behavior)\s*\((...*)\)/.exec(exp.getText());
+				if (componentMatch && componentMatch.length > 0) {
+					component.name = componentMatch[1];
+				} else if (behaviorMatch && behaviorMatch.length > 0) {
 					let behave = new Behavior();
 					behave.tsNode = decorator;
-					behave.startLineNum = Utils._getStartLineNumber(decorator);
-					behave.endLineNum = Utils._getEndLineNumber(decorator);
+					behave.startLineNum = Utils.getStartLineNumber(decorator);
+					behave.endLineNum = Utils.getEndLineNumber(decorator);
 					behave.name = behaviorMatch[1];
 					_behaviors.push(behave);
 				}
@@ -100,25 +104,28 @@ function _initComponent(node: ts.Node) {
 function _getProperty(node: ts.Node) {
 	if (node && node.kind === ts.SyntaxKind.PropertyDeclaration) {
 		let tsProp = <ts.PropertyDeclaration>node;
-		let prop = new Property();
-		prop.tsNode = node;
-		prop.startLineNum = Utils._getStartLineNumber(node);
-		prop.endLineNum = Utils._getEndLineNumber(node);
-		prop.name = tsProp.name.getText();
-		prop.comment ? prop.comment.isFor = ProgramType.Property : null;
-		let parseChildren = (childNode: ts.Node) => {
-			// console.log('_getProperty.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind);
-			if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
-				let objExp = <ts.ObjectLiteralExpression>childNode;
-				let objLiteralObj = Utils._getObjectLiteralString(objExp);
-				prop.params = objLiteralObj.str;
-				prop.type = objLiteralObj.type;
+		let isComponent = Utils.isNodeComponent(tsProp.parent, component);
+		if (isComponent && tsProp.decorators && tsProp.decorators.length > 0) {
+			let prop = new Property();
+			prop.tsNode = node;
+			prop.startLineNum = Utils.getStartLineNumber(node);
+			prop.endLineNum = Utils.getEndLineNumber(node);
+			prop.name = tsProp.name.getText();
+			prop.comment ? prop.comment.isFor = ProgramType.Property : null;
+			let parseChildren = (childNode: ts.Node) => {
+				// console.log('_getProperty.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind);
+				if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
+					let objExp = <ts.ObjectLiteralExpression>childNode;
+					let objLiteralObj = Utils.getObjectLiteralString(objExp);
+					prop.params = objLiteralObj.str;
+					prop.type = objLiteralObj.type;
+				}
+				ts.forEachChild(childNode, parseChildren);
 			}
-			ts.forEachChild(childNode, parseChildren);
+			// console.log('_getProperty, ' + tsProp.name.getText() + '-' + tsProp.getChildCount() + ' kids');
+			parseChildren(tsProp);
+			_properties.push(prop);
 		}
-		// console.log('_getProperty, ' + tsProp.name.getText() + '-' + tsProp.getChildCount() + ' kids');
-		parseChildren(tsProp);
-		_properties.push(prop);
 	}
 }
 /**
@@ -131,20 +138,33 @@ function _getMethod(node: ts.Node) {
 	if (node && node.kind === ts.SyntaxKind.MethodDeclaration) {
 		let method: ts.MethodDeclaration = <ts.MethodDeclaration>node;
 		// console.log('_getMethod for', method.name.getText(), ts.getLineAndCharacterOfPosition(node.getSourceFile(), node.getStart()));
-		if (isComputedProperty(method)) {
+		if (Utils.isComputedProperty(method)) {
 			let computed: ComputedProperty = _getComputedProperty(method);
 			if (computed) {
 				_properties.push(computed);
 			}
-		} else if (isListener(method)) {
+		} else if (Utils.isListener(method)) {
 			let listener: Listener = _getListener(method);
 			if (listener) {
+				if (listener.methodName) {
+					let listenerMethod = Utils.getMethodFromListener(listener);
+					_functions.push(listenerMethod);
+				}
 				_listeners.push(listener);
 			}
-		} else if (isObserver(method)) {
+		} else if (Utils.isObserver(method)) {
 			let observer: Observer = _getObserver(method);
 			if (observer) {
-				_observers.push(observer);
+				let observerMethod = Utils.getMethodFromObserver(observer);
+				_functions.push(observerMethod);
+				if ((observer.properties && observer.properties.length === 1) && observer.properties[0].indexOf('.') === -1) {
+					let property: Property = _findProperty(observer.properties[0]);
+					let propertyParamObj = Utils.getObjectFromString(property.params);
+					propertyParamObj.observer = observer.methodName;
+					property.params = Utils.getStringFromObject(propertyParamObj);
+				} else {
+					_observers.push(observer);
+				}
 			}
 		} else {
 			let func: Function = _getFunction(method);
@@ -165,13 +185,13 @@ function _getComputedProperty(node: ts.MethodDeclaration): ComputedProperty {
 		computed.tsNode = node;
 		computed.name = node.name.getText();
 		computed.methodName = '_get' + Utils.capitalizeFirstLetter(node.name.getText());
-		computed.startLineNum = Utils._getStartLineNumber(node);
-		computed.endLineNum = Utils._getEndLineNumber(node);
+		computed.startLineNum = Utils.getStartLineNumber(node);
+		computed.endLineNum = Utils.getEndLineNumber(node);
 		computed.comment ? computed.comment.isFor = ProgramType.Computed : null;
 		let parseChildren = (childNode: ts.Node) => {
 			if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
 				let objExp = <ts.ObjectLiteralExpression>childNode;
-				let objLitObj = Utils._getObjectLiteralString(objExp);
+				let objLitObj = Utils.getObjectLiteralString(objExp);
 				computed.params = objLitObj.str;
 				computed.type = objLitObj.type;
 			}
@@ -193,16 +213,26 @@ function _getListener(node: ts.MethodDeclaration): Listener {
 		let listener: Listener = new Listener();
 		listener.tsNode = node;
 		listener.methodName = node.name.getText();
-		listener.startLineNum = Utils._getStartLineNumber(node);
-		listener.endLineNum = Utils._getEndLineNumber(node);
+		listener.startLineNum = Utils.getStartLineNumber(node);
+		listener.endLineNum = Utils.getEndLineNumber(node);
 		listener.comment ? listener.comment.isFor = ProgramType.Listener : null;
 		if (node.decorators && node.decorators.length > 0) {
 			node.decorators.forEach((decorator: ts.Decorator, idx) => {
 				let parseChildren = (decoratorChildNode) => {
-					if (decoratorChildNode.kind === ts.SyntaxKind.StringLiteral) {
-						let listenerStrNode = <ts.StringLiteral>decoratorChildNode;
-						listener.eventDeclaration = listenerStrNode.getText();
-					}
+					let kindStr = (<any>ts).SyntaxKind[decoratorChildNode.kind] + '=' + decoratorChildNode.kind;
+					// console.log('_getListener.parseChildren decorator.kind=', kindStr);
+					// console.log('text=', decoratorChildNode.getText());
+					switch (decoratorChildNode.kind) {
+						case ts.SyntaxKind.StringLiteral:
+							let listenerStrNode = <ts.StringLiteral>decoratorChildNode;
+							listener.eventDeclaration = listenerStrNode.getText();
+							break;
+						case ts.SyntaxKind.PropertyAccessExpression:
+							let listenerPropAccExp = <ts.PropertyAccessExpression>decoratorChildNode;
+							listener.eventDeclaration = listenerPropAccExp.getText();
+							listener.isExpression = true;
+							break;
+					};
 					ts.forEachChild(decoratorChildNode, parseChildren);
 				};
 				parseChildren(decorator);
@@ -224,8 +254,8 @@ function _getObserver(node: ts.MethodDeclaration): Observer {
 	if (node) {
 		let observer: Observer = new Observer();
 		observer.tsNode = node;
-		observer.startLineNum = Utils._getStartLineNumber(node);
-		observer.endLineNum = Utils._getEndLineNumber(node);
+		observer.startLineNum = Utils.getStartLineNumber(node);
+		observer.endLineNum = Utils.getEndLineNumber(node);
 		observer.methodName = node.name.getText();
 		observer.comment ? observer.comment.isFor = ProgramType.Observer : null;
 		if (node.decorators && node.decorators.length > 0) {
@@ -258,14 +288,14 @@ function _getFunction(node: ts.MethodDeclaration): Function {
 		let func: Function = new Function();
 		func.tsNode = node;
 		func.methodName = node.name.getText();;
-		func.startLineNum = Utils._getStartLineNumber(node);
-		func.endLineNum = Utils._getEndLineNumber(node);
+		func.startLineNum = Utils.getStartLineNumber(node);
+		func.endLineNum = Utils.getEndLineNumber(node);
 		let params = [];
 		let parseChildren = (childNode: ts.Node) => {
 			// console.log('_getFunction.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind)
 			if (childNode.kind === ts.SyntaxKind.Parameter) {
 				let param = <ts.ParameterDeclaration>childNode;
-				params.push(childNode.getText());
+			params.push(childNode.getText().replace(/\??:\s*[a-zA-Z]*/g, ''));
 			}
 			ts.forEachChild(childNode, parseChildren);
 		}
@@ -277,61 +307,18 @@ function _getFunction(node: ts.MethodDeclaration): Function {
 	return null;
 }
 /**
- * Determine of the passed in node matches the pattern of a
- * computed property. Mainly, is the decorator have a name of 'computed'
- * and all the other relevant bits are present
- * @param {ts.MethodDeclaration} node
- * @returns {boolean}
+ * Find a property in the _properties array by it's name
+ * @param {string} propertyName
+ * @returns {Property}
  */
-function isComputedProperty(node: ts.MethodDeclaration): boolean {
-	let isComputed = false;
-	if (node && node.decorators && node.decorators.length > 0) {
-		node.decorators.forEach((val: ts.Decorator, idx: number) => {
-			let exp = val.expression;
-			let expText = exp.getText();
-			let decoratorMatch = /\s*(?:computed)\s*\((?:\{*(.*)\}*)\)/.exec(expText);
-			isComputed = decoratorMatch && decoratorMatch.length > 0 ? true : false;
+function _findProperty(propertyName: string): Property {
+	let prop = null;
+	if (_properties && _properties.length > 0) {
+		prop = _properties.find((prop: Property, idx) => {
+			return prop.name === propertyName;
 		});
 	}
-	return isComputed;
-}
-/**
- * Determine if the passed in node matches the pattern of a
- * listener. Mainly, does the decorator have a name of 'listen'
- * and all the other relevant bits are present
- * @param {ts.MethodDeclaration} node
- * @returns {boolean}
- */
-function isListener(node: ts.MethodDeclaration): boolean {
-	let isListener = false;
-	if (node && node.decorators && node.decorators.length > 0) {
-		node.decorators.forEach((val: ts.Decorator, idx: number) => {
-			let exp = val.expression;
-			let expText = exp.getText();
-			let decoratorMatch = /\s*(?:listen)\s*\((?:\{*(.*)\}*)\)/.exec(expText);
-			isListener = decoratorMatch && decoratorMatch.length > 0 ? true : false;
-		});
-	}
-	return isListener;
-}
-/**
- * Determine if the passed in node matches the pattern of a
- * observer. Mainly, does the decorator have a name of 'observe'
- * and all the other relevant bits are present
- * @param {ts.MethodDeclaration} node
- * @returns {boolean}
- */
-function isObserver(node: ts.MethodDeclaration): boolean {
-	let isObserver = false;
-	if (node && node.decorators && node.decorators.length > 0) {
-		node.decorators.forEach((val: ts.Decorator, idx: number) => {
-			let exp = val.expression;
-			let expText = exp.getText();
-			let decoratorMatch = /\s*(?:observe)\s*\((?:['"]{1}(.*)['"]{1})\)/.exec(expText);
-			isObserver = decoratorMatch && decoratorMatch.length > 0 ? true : false;
-		});
-	}
-	return isObserver;
+	return prop;
 }
 /**
  * Actually write out documentation. If it already exists, delete it first

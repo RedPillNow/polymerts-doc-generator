@@ -1,6 +1,6 @@
-# redpill-doc-generator
+# polymerts-doc-generator
 
-This is a node module for parsing a TypeScript file (PolymerTS) and generating an _empty_ documentation file (i.e. no code, only signatures) compatible with Polymer 1.0 to pass to iron-component-page for documentation. This will end up being part of the [redpill-zion project](https://bitbucket.org/redpilldev/redpill-zion).
+This is a node module for parsing a TypeScript file (PolymerTS) and generating an _empty_ documentation file (i.e. no code, only signatures) compatible with Polymer 1.0 to pass to iron-component-page for documentation.
 
 ## Background Info
 
@@ -17,7 +17,7 @@ First, make sure you have [Node.js](https://nodejs.org/) installed, so we can us
 
 ## Install
 
-Unfortunately this is not published to the NPM library so will have to figure out how to install from a private repository
+Unfortunately this is not yet published to the NPM library so will have to figure out how to install from a repository until then
 
 ```bash
 npm install ???
@@ -26,7 +26,7 @@ npm install ???
 ## Usage
 
 ```js
-var rpd = require('redpill-doc-generator');
+var rpd = require('polymerts-doc-generator');
 /**
  * @param {string} pathToTsFile - The path to the file we want to parse
  * @param {string} pathToDocFile - The directory where we want to put our documentation files
@@ -50,4 +50,4 @@ This project is written in typescript. There is a `compile` script which just ru
 
 ## Structure
 
-Since this project is written in TypeScript there is a directory structure. The `lib` directory contains a util.ts file which provides some common utilities. The `models` directory which contains all the parts of our TypeScript files (i.e. Comment, Listener, Property, etc.). index.ts in the src directory provides the entry point into the tool
+The `lib` directory contains a utils.ts file which provides some common utilities. The `models` directory which contains all the models for the parts of a PolymerTS component (i.e. Comment, Listener, Property, etc.). index.ts in the src directory provides the entry point into the tool. For testing purposes only we have the `data` and `docs` directories which is where _docs_ will be written to and _data_ contains some elements for testing purposes.

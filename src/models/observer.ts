@@ -4,7 +4,7 @@ export class Observer extends ProgramPart {
 	private _properties: string[];
 	private _methodName: any;
 
-	get properties() {
+	get properties(): string[] {
 		return this._properties;
 	}
 

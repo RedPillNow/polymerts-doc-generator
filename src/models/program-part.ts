@@ -10,7 +10,7 @@ export abstract class ProgramPart {
 	abstract toMarkup(): string;
 
 	get comment() {
-		if (!this._comment && this.tsNode) {
+		if (this._comment === undefined && this.tsNode) {
 			let tsNodeAny = (<any>this.tsNode);
 			if (tsNodeAny.jsDoc && tsNodeAny.jsDoc.length > 0) {
 				let comm:Comment = new Comment();
@@ -18,10 +18,16 @@ export abstract class ProgramPart {
 				if (tsNodeAny.jsDoc[0].tags && tsNodeAny.jsDoc[0].tags.length > 0) {
 					let tags = [];
 					for (let i = 0; i < tsNodeAny.jsDoc[0].tags.length; i++) {
-						let tag = tsNodeAny.jsDoc[0].tags[i];
-						let tagName = '@' + tag.tagName.text;
+						let tag = tsNodeAny.jsDoc[0].tags[i]; // Tag ts.Node
+						let tagName = '@' + tag.tagName.text; // The text = of the tag '@param'
 						let tagNameType = tag.typeExpression ? tag.typeExpression.getText() : tag.comment;
-						tagName += ' ' + tagNameType;
+						let tagTextName = tag.name ? tag.name.getText() : '';
+						let tagComment = tag.comment ? tag.comment : '';
+						tagName += ' ' + tagNameType; // The type = @param '{string}'
+						tagName += ' ' + tagTextName; // The name = @param {string} 'foo'
+						if (tag.comment !== tagNameType) {
+							tagName += ' ' + tagComment; // The comment = @param {string} foo 'some comment'
+						}
 						tags.push(tagName);
 					}
 					comm.tags = tags;

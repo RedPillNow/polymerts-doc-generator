@@ -4,15 +4,12 @@
   "description": "Generates Polymer documentation for a project",
   "main": "index.js",
   "scripts": {
-	"compile": "tsc",
-	"build": "tsc --outDir dist",
+    "compile": "tsc",
+    "build": "tsc --outDir dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Keith Strickland <keith@redpillnow.com>",
   "license": "ISC",
-  "dependencies": {
-    "parse-comments": "^0.4.3"
-  },
   "devDependencies": {
     "@types/node": "^8.0.34",
     "del": "^3.0.0",

@@ -293,9 +293,9 @@ function _getFunction(node: ts.MethodDeclaration): Function {
 		let params = [];
 		let parseChildren = (childNode: ts.Node) => {
 			// console.log('_getFunction.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind)
-			if (childNode.kind === ts.SyntaxKind.Parameter) {
+			if (childNode.kind === ts.SyntaxKind.Parameter && childNode.parent === node) {
 				let param = <ts.ParameterDeclaration>childNode;
-			params.push(childNode.getText().replace(/\??:\s*[a-zA-Z]*/g, ''));
+				params.push(childNode.getText().replace(/\??:\s*[a-zA-Z]*/g, ''));
 			}
 			ts.forEachChild(childNode, parseChildren);
 		}

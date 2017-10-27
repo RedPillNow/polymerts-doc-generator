@@ -51,3 +51,7 @@ This project is written in typescript. There is a `compile` script which just ru
 ## Structure
 
 The `lib` directory contains a utils.ts file which provides some common utilities. The `models` directory which contains all the models for the parts of a PolymerTS component (i.e. Comment, Listener, Property, etc.). index.ts in the src directory provides the entry point into the tool. For testing purposes only we have the `data` and `docs` directories which is where _docs_ will be written to and _data_ contains some elements for testing purposes.
+
+## Future Directions
+
+After some conversations with the team this may be a good starting point for converting a PolymerTS/Polymer 1.x to PolmerTS/Polymer 2.x conversion tool. Also, converting to Polymer 2.0 should not be that big of a leap. We will just need to change the toMarkup of the models.

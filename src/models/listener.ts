@@ -46,15 +46,11 @@ export class Listener extends ProgramPart {
 	set methodName(methodName) {
 		this._methodName = methodName;
 	}
-	// TODO: If the listener has an expression as it's name, we need
-	// to render it as 'NowElement.NOW_ERROR_EVENT: _handleError'
+
 	toMarkup() {
 		let comment = this.comment ? this.comment.toMarkup() : '';
 		let listenerStr = comment;
-		let eventName = this.eventName ? this.eventName.replace(/['"]/g, '') : '';
-		if (this.isExpression) {
-			eventName = this.eventDeclaration;
-		}
+		let eventName = this.eventDeclaration ? this.eventDeclaration.replace(/['"]/g, '') : '';
 		listenerStr += '\t\t\t\'' + eventName + '\'';
 		listenerStr += ': ';
 		listenerStr += '\'' + this.methodName + '\'';

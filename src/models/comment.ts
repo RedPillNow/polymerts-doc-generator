@@ -102,6 +102,9 @@ export class Comment {
 			markup += this._getIndent() + ' * ' + tag + '\n';
 		}
 		markup += this._getIndent() + ' */\n';
+		if (!this.commentText && (!this.tags || this.tags.length === 0)) {
+			markup = '';
+		}
 		return markup;
 	}
 }

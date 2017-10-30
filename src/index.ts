@@ -12,6 +12,11 @@ import { Observer } from './models/observer';
 import { Property } from './models/property';
 import { ProgramType } from './models/comment';
 
+// TODO: Instead of passing along strings, maybe we should populate the models
+// with the actual objects. For example instead of '["arr1","arr2"]', pass along
+// the actual array. This might cause some problems, but I think it'll be easier
+// to parse the output
+
 // Variables we can read/update from anywhere
 let component: Component = null;
 let _behaviors: Behavior[] = [];
@@ -104,37 +109,38 @@ function _initComponent(node: ts.Node) {
 function _getProperty(node: ts.Node) {
 	if (node && node.kind === ts.SyntaxKind.PropertyDeclaration) {
 		let tsProp = <ts.PropertyDeclaration>node;
-		let isComponent = Utils.isNodeComponent(tsProp.parent, component);
-		if (isComponent && tsProp.decorators && tsProp.decorators.length > 0) {
+		let isInComponent = Utils.isNodeComponent(tsProp.parent, component);
+		let insideProperty = false;
+		if (isInComponent && tsProp.decorators && tsProp.decorators.length > 0) {
 			let prop = new Property();
 			prop.tsNode = node;
 			prop.startLineNum = Utils.getStartLineNumber(node);
 			prop.endLineNum = Utils.getEndLineNumber(node);
 			prop.name = tsProp.name.getText();
 			prop.comment ? prop.comment.isFor = ProgramType.Property : null;
-			// console.log('_getProperty, prop.name=', prop.name);
 			let parseChildren = (childNode: ts.Node) => {
-				// console.log('_getProperty.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind);
-				// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
 				if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
-					// if (childNode.parent.parent.parent === node) {
-						let objExp = <ts.ObjectLiteralExpression>childNode;
+					let objExp = <ts.ObjectLiteralExpression>childNode;
+					if (!insideProperty) {
 						let objLiteralObj = Utils.getObjectLiteralString(objExp);
 						prop.params = objLiteralObj.str;
 						prop.type = objLiteralObj.type;
-					// }
+						insideProperty = true;
+					} else {
+						prop.containsValueObjectDeclaration = true;
+						prop.valueObjectParams = Utils.getObjectLiteralString(objExp).str;
+					}
 				} else if (childNode.kind === ts.SyntaxKind.ArrowFunction) {
-					// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
 					prop.containsValueFunction = true;
-					// TODO - Need to take this into account
 				} else if (childNode.kind === ts.SyntaxKind.FunctionExpression) {
-					// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
 					prop.containsValueFunction = true;
-					// TODO - Need to take this into account
+				} else if (childNode.kind === ts.SyntaxKind.ArrayLiteralExpression) {
+					let arrayLiteral = <ts.ArrayLiteralExpression>childNode;
+					prop.containsValueArrayLiteral = true;
+					prop.valueArrayParams = arrayLiteral.getText();
 				}
 				ts.forEachChild(childNode, parseChildren);
 			}
-			// console.log('_getProperty, ' + tsProp.name.getText() + '-' + tsProp.getChildCount() + ' kids');
 			parseChildren(tsProp);
 			_properties.push(prop);
 		}
@@ -153,6 +159,8 @@ function _getMethod(node: ts.Node) {
 		if (Utils.isComputedProperty(method)) {
 			let computed: ComputedProperty = _getComputedProperty(method);
 			if (computed) {
+				let computedMethod = Utils.getMethodFromComputed(computed);
+				_functions.push(computedMethod);
 				_properties.push(computed);
 			}
 		} else if (Utils.isListener(method)) {
@@ -190,13 +198,14 @@ function _getMethod(node: ts.Node) {
  * Get a computed property if the node is a ComputedProperty
  * @param {ts.MethodDeclaration} node
  * @returns {ComputedProperty}
+ * @todo Need to create the function
  */
 function _getComputedProperty(node: ts.MethodDeclaration): ComputedProperty {
 	if (node) {
 		let computed: ComputedProperty = new ComputedProperty();
 		computed.tsNode = node;
 		computed.name = node.name.getText();
-		computed.methodName = '_get' + Utils.capitalizeFirstLetter(node.name.getText());
+		computed.methodName = '_get' + Utils.capitalizeFirstLetter(node.name.getText().replace(/_/g, ''));
 		computed.startLineNum = Utils.getStartLineNumber(node);
 		computed.endLineNum = Utils.getEndLineNumber(node);
 		computed.comment ? computed.comment.isFor = ProgramType.Computed : null;
@@ -232,8 +241,6 @@ function _getListener(node: ts.MethodDeclaration): Listener {
 			node.decorators.forEach((decorator: ts.Decorator, idx) => {
 				let parseChildren = (decoratorChildNode) => {
 					let kindStr = (<any>ts).SyntaxKind[decoratorChildNode.kind] + '=' + decoratorChildNode.kind;
-					// console.log('_getListener.parseChildren decorator.kind=', kindStr);
-					// console.log('text=', decoratorChildNode.getText());
 					switch (decoratorChildNode.kind) {
 						case ts.SyntaxKind.StringLiteral:
 							let listenerStrNode = <ts.StringLiteral>decoratorChildNode;

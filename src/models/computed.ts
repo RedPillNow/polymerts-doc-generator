@@ -13,6 +13,12 @@ export class ComputedProperty extends Property {
 	// TODO: Need to implement this so it adds the computed: methodName
 	private _getNewParams(): string {
 		let partsArr = this.params ? this.params.split(',') : [];
+		let hasType = partsArr.find((part) => {
+			return part.indexOf('type:') > -1;
+		});
+		if (!hasType) {
+			partsArr.unshift('type: Object');
+		}
 		let newParamStr = '{\n';
 		for (let i = 0; i < partsArr.length; i++) {
 			let part = partsArr[i];

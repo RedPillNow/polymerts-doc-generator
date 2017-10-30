@@ -2,10 +2,12 @@ import * as ts from 'typescript';
 import * as path from 'path';
 import * as Utils from '../lib/utils';
 import { Component } from '../models/component';
+import { Comment } from '../models/comment';
 import { Listener } from '../models/listener';
 import { Function } from '../models/function';
 import { ProgramType } from '../models/comment';
 import { Observer } from '../models/observer';
+import { ComputedProperty } from '../models/computed';
 /**
  * Trim all whitespace to the right of a string
  * @export
@@ -100,6 +102,27 @@ export function getObjectFromString(objectStr: string): any {
 	return params;
 }
 /**
+ * Produce an array from a string which is formatted as an array
+ * @export
+ * @param {string} arrayStr
+ * @returns {any}
+ */
+export function getArrayFromString(arrayStr: string): any {
+	let arr = [];
+	if (arrayStr) {
+		let partsArr = arrayStr.replace(/[\[\]]/g, '').split(',');
+		for (let i = 0; i < partsArr.length; i++) {
+			let part = partsArr[i];
+			if (part) {
+				let partStr = part.replace(/[\n\t\[\]'"]/g, '');
+				partStr = Utils.trimAllWhitespace(partStr);
+				arr.push(partStr);
+			}
+		}
+	}
+	return arr;
+}
+/**
  * Get the pieces of the path for fileName
  * @param {string} fileName
  * @returns {any} pathInfo
@@ -177,14 +200,49 @@ export function getMethodFromListener(listener: Listener): Function {
 			listenerMethod = new Function();
 			listenerMethod.methodName = listener.methodName;
 			listenerMethod.parameters = ['evt'];
-			listenerMethod.comment = listener.comment;
+			listenerMethod.comment = listener.comment || new Comment();
+			if (!listener.comment) {
+				listenerMethod.comment.commentText = '';
+			}
 			listenerMethod.comment.isFor = ProgramType.Function;
-			let tags = listenerMethod.comment.tags;
-			tags.push('@listens ' + listener.eventName);
+			let tags = listenerMethod.comment.tags || [];
+			let hasListensTag = tags.find((tag) => {
+				return tag.indexOf('@listens') > -1;
+			});
+			if (!hasListensTag) {
+				tags.push('@listens #' + listener.eventDeclaration);
+			}
+			if (!listenerMethod.comment.tags || listenerMethod.comment.tags.length === 0) {
+				listenerMethod.comment.tags = tags;
+			}
 			listener.comment = null;
 		}
 		return listenerMethod;
 	}
+}
+/**
+ * Create a method from a computed property
+ * @export
+ * @param {ComputedProperty} computed
+ * @returns {Function}
+ */
+export function getMethodFromComputed(computed: ComputedProperty): Function {
+	let computedMethod = null;
+	if (computed) {
+		if (computed.methodName) {
+			computedMethod = new Function();
+			computedMethod.methodName = computed.methodName;
+			if (computed.comment) {
+				computedMethod.comment = new Comment();
+				computedMethod.comment.commentText = computed.comment.commentText;
+				computedMethod.comment.endLineNumber = computed.comment.endLineNum;
+				computedMethod.comment.startLineNumber = computed.comment.startLineNum;
+				computedMethod.comment.tags = computed.comment.tags || [];
+				computedMethod.comment.isFor = ProgramType.Function;
+			}
+		}
+	}
+	return computedMethod;
 }
 /**
  * Create a method from an observer
@@ -212,8 +270,11 @@ export function getMethodFromObserver(observer: Observer): Function {
 				}
 				observerMethod.parameters = paramArr;
 			}
-			observerMethod.comment = observer.comment;
+			observerMethod.comment = observer.comment || new Comment();
 			observerMethod.comment.isFor = ProgramType.Function;
+			if (!observer.comment) {
+				observerMethod.comment.commentText = '';
+			}
 			observer.comment = null;
 		}
 	}

@@ -55,9 +55,9 @@ export class Listener extends ProgramPart {
 		if (this.isExpression) {
 			eventName = this.eventDeclaration;
 		}
-		listenerStr += '\t\t\t"' + eventName + '"';
+		listenerStr += '\t\t\t\'' + eventName + '\'';
 		listenerStr += ': ';
-		listenerStr += '"' + this.methodName + '"';
+		listenerStr += '\'' + this.methodName + '\'';
 		return listenerStr;
 	}
 }

@@ -112,13 +112,25 @@ function _getProperty(node: ts.Node) {
 			prop.endLineNum = Utils.getEndLineNumber(node);
 			prop.name = tsProp.name.getText();
 			prop.comment ? prop.comment.isFor = ProgramType.Property : null;
+			// console.log('_getProperty, prop.name=', prop.name);
 			let parseChildren = (childNode: ts.Node) => {
 				// console.log('_getProperty.parseChildren.childNode.kind=', (<any>ts).SyntaxKind[childNode.kind], '=', childNode.kind);
+				// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
 				if (childNode.kind === ts.SyntaxKind.ObjectLiteralExpression) {
-					let objExp = <ts.ObjectLiteralExpression>childNode;
-					let objLiteralObj = Utils.getObjectLiteralString(objExp);
-					prop.params = objLiteralObj.str;
-					prop.type = objLiteralObj.type;
+					// if (childNode.parent.parent.parent === node) {
+						let objExp = <ts.ObjectLiteralExpression>childNode;
+						let objLiteralObj = Utils.getObjectLiteralString(objExp);
+						prop.params = objLiteralObj.str;
+						prop.type = objLiteralObj.type;
+					// }
+				} else if (childNode.kind === ts.SyntaxKind.ArrowFunction) {
+					// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
+					prop.containsValueFunction = true;
+					// TODO - Need to take this into account
+				} else if (childNode.kind === ts.SyntaxKind.FunctionExpression) {
+					// console.log('_getProperty.parseChildren.childNode.parent.kind=', (<any>ts).SyntaxKind[childNode.parent.kind], '=', childNode.parent.kind);
+					prop.containsValueFunction = true;
+					// TODO - Need to take this into account
 				}
 				ts.forEachChild(childNode, parseChildren);
 			}

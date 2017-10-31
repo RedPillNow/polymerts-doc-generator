@@ -105,7 +105,7 @@ export class Component extends ProgramPart {
 	}
 
 	private _writeFoot(): string {
-		let footStr = '\t});\n';
+		let footStr = '\n\t});\n';
 		footStr += '})();\n';
 		footStr += '\t\t</script>\n';
 		footStr += '\t</template>\n';

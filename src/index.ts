@@ -12,23 +12,31 @@ import { Observer } from './models/observer';
 import { Property } from './models/property';
 import { ProgramType } from './models/comment';
 
-// TODO: Instead of passing along strings, maybe we should populate the models
+// DECISION: Instead of passing along strings, maybe we should populate the models
 // with the actual objects. For example instead of '["arr1","arr2"]', pass along
 // the actual array. This might cause some problems, but I think it'll be easier
 // to parse the output
 
+// DECISION: Based on the above decision, instead of manually storing strings of
+// the whole piece of code, maybe we should be figuring stuff out from the node
+// of each model. This would alleviate a lot of the work arounds put in place
+// to deal with errant quotes, indentations, etc. The downside here is that it
+// will make the models much heavier, however it will probably make this product
+// more stable.
+
 // Variables we can read/update from anywhere
-let component: Component = null;
+let component: Component = new Component();
 let _behaviors: Behavior[] = [];
 let _functions: Function[] = [];
 let _listeners: Listener[] = [];
 let _observers: Observer[] = [];
 let _properties: Property[] = [];
 
-export function start(fileName: string, docPath: string): void {
-	let pathInfo = Utils.getPathInfo(fileName, docPath);
+export function start(fileName: string, docPath: string): string {
+	let pathInfo: Utils.PathInfo = Utils.getPathInfo(fileName, docPath);
+	component.htmlFilePath = pathInfo.fullHtmlFilePath;
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
-	_parse(sourceFile);
+	_parseTs(sourceFile);
 	_writeDocumentation(pathInfo, component);
 	return pathInfo.fullDocFilePath;
 }
@@ -36,8 +44,7 @@ export function start(fileName: string, docPath: string): void {
  * Parse the source file and build out the component and all it's parts
  * @param {ts.SourceFile} sourceFile The ts.SourceFile
  */
-function _parse(sourceFile: ts.SourceFile) {
-	component = new Component();
+function _parseTs(sourceFile: ts.SourceFile): void {
 	let nodes = 0;
 	let parseNode = (node: ts.Node) => {
 		// console.log('getComponent.parseNode.node.kind=', (<any>ts).SyntaxKind[node.kind], '=', node.kind);
@@ -179,9 +186,13 @@ function _getMethod(node: ts.Node) {
 				_functions.push(observerMethod);
 				if ((observer.properties && observer.properties.length === 1) && observer.properties[0].indexOf('.') === -1) {
 					let property: Property = _findProperty(observer.properties[0]);
-					let propertyParamObj = Utils.getObjectFromString(property.params);
-					propertyParamObj.observer = observer.methodName;
-					property.params = Utils.getStringFromObject(propertyParamObj);
+					try {
+						let propertyParamObj = Utils.getObjectFromString(property.params);
+						propertyParamObj.observer = observer.methodName;
+						property.params = Utils.getStringFromObject(propertyParamObj);
+					} catch (e) {
+						throw new Error('Property: \'' + observer.properties[0] + '\' for observer method \'' + observerMethod.methodName + '\' is not defined as a property on the component');
+					}
 				} else {
 					_observers.push(observer);
 				}
@@ -344,7 +355,7 @@ function _findProperty(propertyName: string): Property {
  * @param {any[]} comments
  * @param {string} fileName
  */
-function _writeDocumentation(pathInfo: any, component: Component): void {
+function _writeDocumentation(pathInfo: Utils.PathInfo, component: Component): void {
 	if (fs.existsSync(pathInfo.fullDocFilePath)) {
 		fs.unlinkSync(pathInfo.fullDocFilePath);
 	}

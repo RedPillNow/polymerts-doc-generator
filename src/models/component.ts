@@ -1,12 +1,16 @@
+import * as fs from 'fs';
+import * as htmlParser from 'htmlparser2';
 import { ProgramPart } from './program-part';
 import { Property } from './property';
 import { Observer } from './observer';
 import { Behavior } from './behavior';
 import { Listener } from './listener';
+import { HtmlComment } from './html-comment';
 
 export class Component extends ProgramPart {
 	private _behaviors: Behavior[];
 	private _className: string;
+	private _htmlFilePath: string;
 	private _listeners: Listener[];
 	private _methods: any[];
 	private _name: string;
@@ -27,6 +31,14 @@ export class Component extends ProgramPart {
 
 	set className(className) {
 		this._className = className;
+	}
+
+	get htmlFilePath() {
+		return this._htmlFilePath;
+	}
+
+	set htmlFilePath(htmlFilePath) {
+		this._htmlFilePath = htmlFilePath;
 	}
 
 	get listeners() {
@@ -70,7 +82,8 @@ export class Component extends ProgramPart {
 	}
 
 	toMarkup() {
-		let componentStr = this._writeHead();
+		let componentStr = this._writeHtmlComment();
+		componentStr += this._writeHead();
 		if (this.behaviors && this.behaviors.length > 0) {
 			componentStr += this._writeBehaviors();
 		}
@@ -93,6 +106,22 @@ export class Component extends ProgramPart {
 		return componentStr;
 	}
 
+	private _writeHtmlComment(): string {
+		let comment = null;
+		let parser: htmlParser.Parser = new htmlParser.Parser({
+			oncomment: (data) => {
+				console.log('_parseHtml parser.oncomment', data);
+				if (data.indexOf('@demo') > -1) {
+					comment = new HtmlComment();
+					comment.comment = data;
+				}
+			}
+		}, { decodeEntities: true });
+		parser.write(fs.readFileSync(this.htmlFilePath));
+		parser.end();
+		return comment ? comment.toMarkup() : '';
+	}
+
 	private _writeHead(): string {
 		let headStr = '<dom-module id="' + this.name + '">\n';
 		headStr += '\t<template>\n';
@@ -100,7 +129,7 @@ export class Component extends ProgramPart {
 		headStr += '\t\t<script>\n';
 		headStr += '(function() {\n';
 		headStr += '\tPolymer({\n';
-		headStr += '\t\tis: "' + this.name + '",';
+		headStr += '\t\tis: \'' + this.name + '\',';
 		return headStr;
 	}
 

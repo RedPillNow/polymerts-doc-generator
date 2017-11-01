@@ -6,7 +6,7 @@ export class Property extends ProgramPart {
 	private _containsValueFunction: boolean = false;
 	private _containsValueObjectDeclaration: boolean = false;
 	private _name: string;
-	private _params: any;
+	private _params: string;
 	private _type: string;
 	private _valueArrayParams: any;
 	private _valueObjectParams: any;
@@ -96,11 +96,15 @@ export class Property extends ProgramPart {
 				let valueLen = this.valueArrayParams ? this.valueArrayParams.split(',').length - 1 : 0;
 				newParamStr += (i + 1) < (partsArr.length - valueLen) ? ',\n' : '\n';
 			} else {
+				let regEx = /[/{/}\n\t]/g;
+				if (part.indexOf('type') > -1) {
+					regEx = /[/{/}\n\t']/g;
+				}
 				if ((this.containsValueObjectDeclaration || this.containsValueArrayLiteral) && !this._isPartOfValue(part)) {
-					newParamStr += '\t\t\t\t' + part.replace(/[/{/}\n\t]/g, '');
+					newParamStr += '\t\t\t\t' + part.replace(regEx, '');
 					newParamStr += (i + 1) < partsArr.length ? ',\n' : '\n';
 				} else if (!this.containsValueObjectDeclaration && !this.containsValueArrayLiteral) {
-					newParamStr += '\t\t\t\t' + part.replace(/[/{/}\n\t]/g, '');
+					newParamStr += '\t\t\t\t' + part.replace(regEx, '');
 					newParamStr += (i + 1) < partsArr.length ? ',\n' : '\n';
 				}
 			}

@@ -9,6 +9,20 @@ import { ProgramType } from '../models/comment';
 import { Observer } from '../models/observer';
 import { ComputedProperty } from '../models/computed';
 /**
+ * An empty class for the PathInfo object. Used mainly for property
+ * checking and typeahead
+ * @export
+ * @class PathInfo
+ */
+export class PathInfo {
+	fileName: string;
+	dirName: string;
+	docFileName: string;
+	fullDocFilePath: string;
+	htmlFileName: string;
+	fullHtmlFilePath: string;
+}
+/**
  * Trim all whitespace to the right of a string
  * @export
  * @param {any} str
@@ -75,7 +89,11 @@ export function getStringFromObject(obj: any): string {
 		objStr = '{\n';
 		let idx = 0;
 		for (let key in obj) {
-			objStr += '\t' + key + ': \'' + obj[key] + '\'';
+			let objVal = '\'' + obj[key] + '\'';
+			if (typeof (obj[key]) === 'boolean') {
+				objVal = obj[key];
+			}
+			objStr += '\t' + key + ': ' + objVal;
 			objStr += (idx + 1) < objLength ? ',\n' : '\n';
 			idx++;
 		}
@@ -96,7 +114,9 @@ export function getObjectFromString(objectStr: string): any {
 		let part = partsArr[i];
 		let partStr = part.replace(/[/{/}\n\t]/g, '');
 		partStr = Utils.trimAllWhitespace(partStr);
-		let partArr = partStr.split(':');
+		let partArr: any[] = partStr.split(':');
+		partArr[1] = partArr[1] === 'true' ? true : partArr[1];
+		partArr[1] = partArr[1] === 'false' ? false : partArr[1];
 		params[partArr[0]] = partArr[1];
 	}
 	return params;
@@ -131,13 +151,16 @@ export function getArrayFromString(arrayStr: string): any {
  * @property {string} pathInfo.docFileName - The generated documentation file name
  * @property {string} pathInfo.fullDocFilePath - The full path to pathInfo.docFileName
  */
-export function getPathInfo(fileName: string, docPath: string): any {
-	let pathInfo: any = {};
+export function getPathInfo(fileName: string, docPath: string): PathInfo {
+	let pathInfo: PathInfo = new PathInfo;
 	if (fileName) {
+		let fileNameExt = path.extname(fileName);
 		pathInfo.fileName = fileName;
 		pathInfo.dirName = path.dirname(docPath);
-		pathInfo.docFileName = 'doc_' + path.basename(fileName) + '.html';
+		pathInfo.docFileName = 'doc_' + path.basename(fileName).replace(fileNameExt, '.html');
 		pathInfo.fullDocFilePath = path.join(pathInfo.dirName, pathInfo.docFileName);
+		pathInfo.htmlFileName = path.basename(fileName).replace(fileNameExt, '.html');
+		pathInfo.fullHtmlFilePath = path.join(path.dirname(fileName), pathInfo.htmlFileName);
 	}
 	return pathInfo;
 }

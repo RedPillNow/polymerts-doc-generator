@@ -1,6 +1,6 @@
 # polymerts-doc-generator
 
-This is a node module for parsing a TypeScript file (PolymerTS) and generating an _empty_ documentation file (i.e. no code, only signatures) compatible with Polymer 1.0 to pass to iron-component-page for documentation.
+This is a node module for parsing a TypeScript file (PolymerTS) and generating an _empty_ documentation file (i.e. no code, only signatures) compatible with Polymer 1.0 to pass to iron-component-page for documentation. While we try to fill in anything that may be missing in the line of comments when we can, well documented code is both benefecial to new developers coming into the project as well as seasoned developers trying to remember why they may have done something the way they did when returning to a project.
 
 ## Background Info
 
@@ -50,7 +50,7 @@ This project is written in typescript. There is a `compile` script which just ru
 
 ## Supported Patterns
 
-In order for this tool to work, there are certain patterns you need to be aware of. Since this project uses the TypeScript compiler to determine all the information about a code block it is fairly accurate and lenient in it's pattern recognition. If it compiles then theoretically this tool should be able to parse it.
+In order for this tool to work, there are certain patterns you need to be aware of. Since this project uses the TypeScript compiler to determine all the information about a code block it is fairly accurate and lenient in it's pattern recognition. If it compiles then theoretically this tool should be able to parse it. Also, any comments for methods, properties, etc. will be included in the generated documentation in the appropriate place.
 
 ### Component
 
@@ -114,7 +114,7 @@ This is my element's style and example usage documentation
 
 ### Properties
 
-
+If no comment is defined, one will be created and it will include the `@type` tag.
 
 ```typescript
 @property({type: Boolean, reflectToAttribute: true})
@@ -133,6 +133,7 @@ The above will be transformed to:
 
 ```javascript
 /**
+ * propertyName
  * @type {boolean}
  */
 propertyName: {
@@ -205,11 +206,16 @@ _onPropertyName(propertyName,otherPropertyName) {...}
 A new property will be created pointing to the `propertyName` method.
 
 ```typescript
-@computed('someOtherProp')
+@computed()
+propertyName(someOtherProp) {...}
+
+// OR
+
+@computed({type: String})
 propertyName(someOtherProp) {...}
 ```
 
-The above computed property will be transformed to:
+The above computed property will be transformed to: **(NOTE)** _Notice the `type` is `Object`. This will be the default if `type` is not defined in the decorator_
 
 ```javascript
 propertyName: {
@@ -217,9 +223,19 @@ propertyName: {
 	computed: 'propertyName(someOtherProp)'
 }
 propertyName(someOtherProp) {...}
+
+// OR
+
+propertyName: {
+	type: String,
+	computed: 'propertyName(someOtherProp)'
+}
+propertyName(someOtherProp) {...}
 ```
 
 ### Listener
+
+If an `@listener` is defined and there is not a comment, a comment will be created with an `@listens` tag. If there is a comment with no `@listens` tag, we add an `@listens` tag.
 
 ```typescript
 @listener('someElementId.some-event')
@@ -249,12 +265,36 @@ _onSomeEvent(evt: CustomEvent) {...}
 ### Function
 
 ```typescript
+someFunction(arg1: any, arg2: any) {...}
+
+// OR
+/**
+ * Some function
+ * @param {any} arg1
+ * @param {any} arg2
+ * @returns {string}
+ */
+someFunction(arg1: any, arg2: any): string {...}
+```
+
+The above functions will be transformed to:
+
+```javascript
+someFunction(arg1, arg2)
+
+// OR
+
+/**
+ * Some function
+ * @param {any} arg1
+ * @param {any} arg2
+ * @returns {string}
+ */
 someFunction(arg1, arg2) {...}
 ```
 
 ## Project Structure
 
-.
 * polymerts-doc-generator
  	* dist/
 	 	* lib/
@@ -297,6 +337,14 @@ someFunction(arg1, arg2) {...}
 
 
 ***
+## Reporting Bugs
+
+Please use the [Issues](https://github.com/RedPillNow/polymerts-doc-generator/issues) link in this project. Be descriptive, provide any errors that may have been produced, a snippet of the code that caused the error and if possible how to reproduce the issue.
+
+## Contributing
+
+Pull Requests are welcome, encouraged and greatly appreciated. When contributing, please follow the same coding style present in the project. Also, if relevant, please provide comments to your changes. If your Pull Request is addressing a feature request or issue, please include the issue # in the commit. For example "Fixes issue: #123".
+
 ## Future Directions
 
 After some conversations with the team this may be a good starting point for converting a PolymerTS/Polymer 1.x component to a PolmerTS/Polymer 2.x component. Also, converting to Polymer 2.0 should not be that big of a leap. We will just need to change the toMarkup of the models as long as the future PolymerTS 2.x maintains a similar structure.

@@ -110,8 +110,8 @@ export class Component extends ProgramPart {
 		let comment = null;
 		let parser: htmlParser.Parser = new htmlParser.Parser({
 			oncomment: (data) => {
-				console.log('_parseHtml parser.oncomment', data);
-				if (data.indexOf('@demo') > -1) {
+				// console.log('_parseHtml parser.oncomment', data);
+				if (data.indexOf('@demo') > -1 || data.indexOf('@hero') > -1) {
 					comment = new HtmlComment();
 					comment.comment = data;
 				}

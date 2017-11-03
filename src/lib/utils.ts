@@ -200,7 +200,7 @@ export function capitalizeFirstLetter(str: string): string {
  * @param {Component} component The component
  * @returns {boolean}
  */
-export function isNodeComponent(parentNode: ts.Node, component: Component): boolean {
+export function isNodeComponentChild(parentNode: ts.Node, component: Component): boolean {
 	let isComponent = false;
 	if (ts.isClassDeclaration(parentNode)) {
 		let classDecl = <ts.ClassDeclaration>parentNode;

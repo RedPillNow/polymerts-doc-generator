@@ -26,28 +26,46 @@ import { ProgramType } from './models/comment';
 
 // Variables we can read/update from anywhere
 let component: Component = new Component();
+exports.component = component;
 let _behaviors: Behavior[] = [];
 let _functions: Function[] = [];
 let _listeners: Listener[] = [];
 let _observers: Observer[] = [];
 let _properties: Property[] = [];
 
+export function reset() {
+	component = new Component();
+	_behaviors = [];
+	_functions = [];
+	_listeners = [];
+	_observers = [];
+	_properties = [];
+}
+/**
+ * Start the parsing process and then write the documentation from items gathered
+ * during the parsing process.
+ * @export
+ * @param {string} fileName - Full Path to the .ts file to parse
+ * @param {string} docPath - Full Path to the directory to store documentation in
+ * @returns {string} Full Path and filename of the generated documentation
+ */
 export function start(fileName: string, docPath: string): string {
 	let pathInfo: Utils.PathInfo = Utils.getPathInfo(fileName, docPath);
 	component.htmlFilePath = pathInfo.fullHtmlFilePath;
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
-	_parseTs(sourceFile);
+	parseTs(sourceFile);
 	_writeDocumentation(pathInfo, component);
 	return pathInfo.fullDocFilePath;
 }
 /**
  * Parse the source file and build out the component and all it's parts
  * @param {ts.SourceFile} sourceFile The ts.SourceFile
+ * @returns {Component}
  */
-function _parseTs(sourceFile: ts.SourceFile): void {
+export function parseTs(sourceFile: ts.SourceFile): Component {
 	let nodes = 0;
 	let parseNode = (node: ts.Node) => {
-		// console.log('getComponent.parseNode.node.kind=', (<any>ts).SyntaxKind[node.kind], '=', node.kind);
+		// console.log('parseTs.parseNode.node.kind=', (<any>ts).SyntaxKind[node.kind], '=', node.kind);
 		// console.log('node text=', node.getText());
 		switch (node.kind) {
 			case ts.SyntaxKind.ClassDeclaration:
@@ -67,12 +85,14 @@ function _parseTs(sourceFile: ts.SourceFile): void {
 		ts.forEachChild(node, parseNode);
 	}
 	parseNode(sourceFile);
-	console.log('looped through', nodes, 'nodes');
 	component.behaviors = _behaviors;
 	component.methods = _functions;
 	component.listeners = _listeners;
 	component.observers = _observers;
 	component.properties = _properties;
+	console.log('looped through', nodes, 'nodes');
+	return component;
+	// console.log('component=', component);
 }
 /**
  * Populate the component with the values from the node
@@ -116,7 +136,7 @@ function _initComponent(node: ts.Node) {
 function _getProperty(node: ts.Node) {
 	if (node && node.kind === ts.SyntaxKind.PropertyDeclaration) {
 		let tsProp = <ts.PropertyDeclaration>node;
-		let isInComponent = Utils.isNodeComponent(tsProp.parent, component);
+		let isInComponent = Utils.isNodeComponentChild(tsProp.parent, component);
 		let insideProperty = false;
 		if (isInComponent && tsProp.decorators && tsProp.decorators.length > 0) {
 			let prop = new Property();
@@ -185,7 +205,7 @@ function _getMethod(node: ts.Node) {
 				let observerMethod = Utils.getMethodFromObserver(observer);
 				_functions.push(observerMethod);
 				if ((observer.properties && observer.properties.length === 1) && observer.properties[0].indexOf('.') === -1) {
-					let property: Property = _findProperty(observer.properties[0]);
+					let property: Property = findProperty(observer.properties[0]);
 					try {
 						let propertyParamObj = Utils.getObjectFromString(property.params);
 						propertyParamObj.observer = observer.methodName;
@@ -341,7 +361,7 @@ function _getFunction(node: ts.MethodDeclaration): Function {
  * @param {string} propertyName
  * @returns {Property}
  */
-function _findProperty(propertyName: string): Property {
+export function findProperty(propertyName: string): Property {
 	let prop = null;
 	if (_properties && _properties.length > 0) {
 		prop = _properties.find((prop: Property, idx) => {
@@ -374,7 +394,7 @@ function _writeDocumentation(pathInfo: Utils.PathInfo, component: Component): vo
 
 // For Testing Purposes
 // let dataFile = path.join(__dirname, '..', 'src', 'data', 'now-address.ts');
-let dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
-let docFile = path.join(__dirname, 'docs', '*');
-start(dataFile, docFile);
+// let dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
+// let docFile = path.join(__dirname, 'docs', '*');
+// start(dataFile, docFile);
 

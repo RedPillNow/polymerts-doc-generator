@@ -19,7 +19,6 @@ describe('polymerts-doc-generator', function () {
 		polymerTsDoc.parseTs(srcFile);
 		chai.expect(polymerTsDoc.findProperty('apps')).to.be.ok;
 	});
-	it('should b')
 
 	describe('Program Part Gathering Tests', function () {
 		let comp = null;

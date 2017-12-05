@@ -14,12 +14,13 @@ export class Property extends ProgramPart {
 	private _valueObjectParams: any;
 
 	get derivedComment(): Comment {
-		if (!this.comment) {
-			let comment = new Comment();
-			comment.tags = ['@type {' + this.type + '}']
-			comment.isFor = ProgramType.Property;
+		if (!this.comment || !this.comment.commentText) {
+			this.comment = this.comment ? this.comment : new Comment();
+			let type = this.type || 'Object';
+			this.comment.tags = ['@type {' + type + '}']
+			this.comment.isFor = ProgramType.Property;
 		}
-		return null;
+		return this.comment;
 	}
 
 	get containsValueArrayLiteral() {
@@ -224,7 +225,7 @@ export class Property extends ProgramPart {
 	 */
 	toMarkup(): string {
 		let nameParts = this.name.split(':');
-		let comment = this.comment ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
+		let comment = this.comment && this.comment.commentText ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
 		let propStr = comment;
 		propStr += '\t\t\t' + nameParts[0];
 		propStr += ': ';

@@ -96,7 +96,7 @@ export class Comment {
 	toMarkup() {
 		let markup = this._getIndent() + '/**\n';
 		markup += this._getIndent() + ' * ';
-		markup += this.commentText.replace(/\n/g, '\n' + this._getIndent() + ' * ') + '\n';
+		markup += this.commentText ? this.commentText.replace(/\n/g, '\n' + this._getIndent() + ' * ') + '\n' : '\n';
 		for (let i = 0; i < this.tags.length; i++) {
 			let tag = this.tags[i];
 			markup += this._getIndent() + ' * ' + tag + '\n';

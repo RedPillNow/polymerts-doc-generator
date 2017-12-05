@@ -32,7 +32,7 @@ export class ComputedProperty extends Property {
 
 	toMarkup() {
 		let nameParts = this.name.split(':');
-		let comment = this.comment ? '\n' + this.comment.toMarkup() : '\n';
+		let comment = this.comment && this.comment.commentText ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
 		let propStr = comment;
 		propStr += '\t\t\t' + nameParts[0];
 		propStr += ': ';

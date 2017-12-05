@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import * as path from 'path';
+// import * as path from 'path';
 import * as ts from 'typescript';
 import * as Utils from './lib/utils';
 import { Behavior } from './models/behavior'
@@ -394,7 +394,7 @@ function _writeDocumentation(pathInfo: Utils.PathInfo, component: Component): vo
 
 // For Testing Purposes
 // let dataFile = path.join(__dirname, '..', 'src', 'data', 'now-address.ts');
-let dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
-let docFile = path.join(__dirname, 'docs', '*');
-start(dataFile, docFile);
+// let dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
+// let docFile = path.join(__dirname, 'docs', '*');
+// start(dataFile, docFile);
 

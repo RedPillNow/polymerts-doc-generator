@@ -11,7 +11,7 @@
 	"main": "dist/index.js",
 	"scripts": {
 		"compile": "tsc",
-		"build": "tsc --outDir dist",
+		"build": "tsc --outDir ./",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": {

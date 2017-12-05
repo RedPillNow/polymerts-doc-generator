@@ -46,7 +46,7 @@ var ComputedProperty = (function (_super) {
     };
     ComputedProperty.prototype.toMarkup = function () {
         var nameParts = this.name.split(':');
-        var comment = this.comment ? '\n' + this.comment.toMarkup() : '\n';
+        var comment = this.comment && this.comment.commentText ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
         var propStr = comment;
         propStr += '\t\t\t' + nameParts[0];
         propStr += ': ';

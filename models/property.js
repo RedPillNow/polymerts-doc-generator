@@ -25,12 +25,13 @@ var Property = (function (_super) {
     }
     Object.defineProperty(Property.prototype, "derivedComment", {
         get: function () {
-            if (!this.comment) {
-                var comment = new comment_1.Comment();
-                comment.tags = ['@type {' + this.type + '}'];
-                comment.isFor = comment_2.ProgramType.Property;
+            if (!this.comment || !this.comment.commentText) {
+                this.comment = this.comment ? this.comment : new comment_1.Comment();
+                var type = this.type || 'Object';
+                this.comment.tags = ['@type {' + type + '}'];
+                this.comment.isFor = comment_2.ProgramType.Property;
             }
-            return null;
+            return this.comment;
         },
         enumerable: true,
         configurable: true
@@ -232,7 +233,7 @@ var Property = (function (_super) {
     };
     Property.prototype.toMarkup = function () {
         var nameParts = this.name.split(':');
-        var comment = this.comment ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
+        var comment = this.comment && this.comment.commentText ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
         var propStr = comment;
         propStr += '\t\t\t' + nameParts[0];
         propStr += ': ';

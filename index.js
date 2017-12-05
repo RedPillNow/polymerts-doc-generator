@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var fs = require("fs");
+var path = require("path");
 var ts = require("typescript");
 var Utils = require("./lib/utils");
 var behavior_1 = require("./models/behavior");
@@ -324,4 +325,7 @@ function _writeDocumentation(pathInfo, component) {
         console.log('Write stream closed');
     });
 }
+var dataFile = path.join(__dirname, '..', 'src', 'data', 'dig-app.ts');
+var docFile = path.join(__dirname, 'docs', '*');
+start(dataFile, docFile);
 //# sourceMappingURL=index.js.map

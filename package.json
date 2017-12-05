@@ -1,6 +1,6 @@
 {
 	"name": "polymerts-doc-generator",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Generates Polymer documentation for a PolymerTS project which can then use iron-component-page to display the documentation",
 	"keywords": [
 		"polymerts",

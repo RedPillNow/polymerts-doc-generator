@@ -10,17 +10,15 @@ While we understand that the format generated here is for Polymer 1.0. Once we m
 
 ## Setup
 
-First, make sure you have [Node.js](https://nodejs.org/) installed, so we can use the Node package maanger (NPM). Next install the other key tools:
+First, make sure you have [Node.js](https://nodejs.org/) installed, so we can use the Node Package Manger (NPM). Next install the other key tools:
 
 * [Gulp](http://gulpjs.com/) - build
 * [TypeScript](http://www.typescriptlang.org/) - TypeScript Compiler
 
 ## Install
 
-Unfortunately this is not yet published to the NPM library so will have to figure out how to install from a repository until then
-
 ```bash
-npm install ???
+npm install polymerts-doc-generator
 ```
 
 ## Usage

@@ -1,5 +1,7 @@
 import * as Utils from '../lib/utils';
 import { ProgramPart } from './program-part';
+import { Comment } from './comment';
+import { ProgramType } from './comment';
 
 export class Property extends ProgramPart {
 	private _containsValueArrayLiteral: boolean = false;
@@ -10,6 +12,15 @@ export class Property extends ProgramPart {
 	private _type: string;
 	private _valueArrayParams: any;
 	private _valueObjectParams: any;
+
+	get derivedComment(): Comment {
+		if (!this.comment) {
+			let comment = new Comment();
+			comment.tags = ['@type {' + this.type + '}']
+			comment.isFor = ProgramType.Property;
+		}
+		return null;
+	}
 
 	get containsValueArrayLiteral() {
 		return this._containsValueArrayLiteral;
@@ -213,7 +224,7 @@ export class Property extends ProgramPart {
 	 */
 	toMarkup(): string {
 		let nameParts = this.name.split(':');
-		let comment = this.comment ? '\n' + this.comment.toMarkup() : '\n';
+		let comment = this.comment ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
 		let propStr = comment;
 		propStr += '\t\t\t' + nameParts[0];
 		propStr += ': ';

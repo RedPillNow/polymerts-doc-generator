@@ -12,6 +12,8 @@ var __extends = (this && this.__extends) || (function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var Utils = require("../lib/utils");
 var program_part_1 = require("./program-part");
+var comment_1 = require("./comment");
+var comment_2 = require("./comment");
 var Property = (function (_super) {
     __extends(Property, _super);
     function Property() {
@@ -21,6 +23,18 @@ var Property = (function (_super) {
         _this._containsValueObjectDeclaration = false;
         return _this;
     }
+    Object.defineProperty(Property.prototype, "derivedComment", {
+        get: function () {
+            if (!this.comment) {
+                var comment = new comment_1.Comment();
+                comment.tags = ['@type {' + this.type + '}'];
+                comment.isFor = comment_2.ProgramType.Property;
+            }
+            return null;
+        },
+        enumerable: true,
+        configurable: true
+    });
     Object.defineProperty(Property.prototype, "containsValueArrayLiteral", {
         get: function () {
             return this._containsValueArrayLiteral;
@@ -218,7 +232,7 @@ var Property = (function (_super) {
     };
     Property.prototype.toMarkup = function () {
         var nameParts = this.name.split(':');
-        var comment = this.comment ? '\n' + this.comment.toMarkup() : '\n';
+        var comment = this.comment ? '\n' + this.comment.toMarkup() : '\n' + this.derivedComment.toMarkup();
         var propStr = comment;
         propStr += '\t\t\t' + nameParts[0];
         propStr += ': ';

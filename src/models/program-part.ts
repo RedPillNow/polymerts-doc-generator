@@ -9,7 +9,7 @@ export abstract class ProgramPart {
 
 	abstract toMarkup(): string;
 
-	get comment() {
+	public get comment() {
 		if (this._comment === undefined && this.tsNode) {
 			let tsNodeAny = (<any>this.tsNode);
 			if (tsNodeAny.jsDoc && tsNodeAny.jsDoc.length > 0) {
@@ -38,7 +38,7 @@ export abstract class ProgramPart {
 		return this._comment;
 	}
 
-	set comment(comment) {
+	public set comment(comment) {
 		this._comment = comment;
 	}
 

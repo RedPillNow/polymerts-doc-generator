@@ -156,9 +156,9 @@ export function getPathInfo(fileName: string, docPath: string): PathInfo {
 	if (fileName) {
 		let fileNameExt = path.extname(fileName);
 		pathInfo.fileName = fileName;
-		pathInfo.dirName = path.dirname(docPath);
+		pathInfo.dirName = docPath;
 		pathInfo.docFileName = 'doc_' + path.basename(fileName).replace(fileNameExt, '.html');
-		pathInfo.fullDocFilePath = path.join(pathInfo.dirName, pathInfo.docFileName);
+		pathInfo.fullDocFilePath = path.join(docPath, pathInfo.docFileName);
 		pathInfo.htmlFileName = path.basename(fileName).replace(fileNameExt, '.html');
 		pathInfo.fullHtmlFilePath = path.join(path.dirname(fileName), pathInfo.htmlFileName);
 	}

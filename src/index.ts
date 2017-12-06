@@ -32,6 +32,7 @@ let _functions: Function[] = [];
 let _listeners: Listener[] = [];
 let _observers: Observer[] = [];
 let _properties: Property[] = [];
+let options = null;
 
 export function reset() {
 	component = new Component();
@@ -45,11 +46,14 @@ export function reset() {
  * Start the parsing process and then write the documentation from items gathered
  * during the parsing process.
  * @export
+ * @param {any} options - An options object
+ * @property {boolean} options.silent - If true will stop all console.log output
  * @param {string} fileName - Full Path to the .ts file to parse
  * @param {string} docPath - Full Path to the directory to store documentation in
  * @returns {string} Full Path and filename of the generated documentation
  */
-export function start(fileName: string, docPath: string): string {
+export function start(options: any, fileName: string, docPath: string): string {
+	this.options = options || {};
 	let pathInfo: Utils.PathInfo = Utils.getPathInfo(fileName, docPath);
 	component.htmlFilePath = pathInfo.fullHtmlFilePath;
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
@@ -90,7 +94,7 @@ export function parseTs(sourceFile: ts.SourceFile): Component {
 	component.listeners = _listeners;
 	component.observers = _observers;
 	component.properties = _properties;
-	console.log('looped through', nodes, 'nodes');
+	// console.log('looped through', nodes, 'nodes');
 	return component;
 	// console.log('component=', component);
 }
@@ -385,10 +389,14 @@ function _writeDocumentation(pathInfo: Utils.PathInfo, component: Component): vo
 		writeStream.end();
 	});
 	writeStream.on('finish', () => {
-		console.log('All writes to', pathInfo.fullDocFilePath, 'done');
+		if (!this.options || !this.options.silent) {
+			console.log('All writes to', pathInfo.fullDocFilePath, 'done');
+		}
 	});
 	writeStream.on('close', () => {
-		console.log('Write stream closed');
+		if (!this.options || !this.options.silent) {
+			console.log('Write stream closed');
+		}
 	});
 }
 

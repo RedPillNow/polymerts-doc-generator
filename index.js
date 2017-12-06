@@ -18,6 +18,7 @@ var _functions = [];
 var _listeners = [];
 var _observers = [];
 var _properties = [];
+var options = null;
 function reset() {
     component = new component_1.Component();
     _behaviors = [];
@@ -27,7 +28,8 @@ function reset() {
     _properties = [];
 }
 exports.reset = reset;
-function start(fileName, docPath) {
+function start(options, fileName, docPath) {
+    this.options = options || {};
     var pathInfo = Utils.getPathInfo(fileName, docPath);
     component.htmlFilePath = pathInfo.fullHtmlFilePath;
     var sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
@@ -62,7 +64,6 @@ function parseTs(sourceFile) {
     component.listeners = _listeners;
     component.observers = _observers;
     component.properties = _properties;
-    console.log('looped through', nodes, 'nodes');
     return component;
 }
 exports.parseTs = parseTs;
@@ -309,6 +310,7 @@ function findProperty(propertyName) {
 }
 exports.findProperty = findProperty;
 function _writeDocumentation(pathInfo, component) {
+    var _this = this;
     if (fs.existsSync(pathInfo.fullDocFilePath)) {
         fs.unlinkSync(pathInfo.fullDocFilePath);
     }
@@ -318,10 +320,14 @@ function _writeDocumentation(pathInfo, component) {
         writeStream.end();
     });
     writeStream.on('finish', function () {
-        console.log('All writes to', pathInfo.fullDocFilePath, 'done');
+        if (!_this.options || !_this.options.silent) {
+            console.log('All writes to', pathInfo.fullDocFilePath, 'done');
+        }
     });
     writeStream.on('close', function () {
-        console.log('Write stream closed');
+        if (!_this.options || !_this.options.silent) {
+            console.log('Write stream closed');
+        }
     });
 }
 //# sourceMappingURL=index.js.map

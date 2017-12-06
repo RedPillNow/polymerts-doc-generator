@@ -32,7 +32,7 @@ let _functions: Function[] = [];
 let _listeners: Listener[] = [];
 let _observers: Observer[] = [];
 let _properties: Property[] = [];
-let options = null;
+let _options = null;
 
 export function reset() {
 	component = new Component();
@@ -46,14 +46,14 @@ export function reset() {
  * Start the parsing process and then write the documentation from items gathered
  * during the parsing process.
  * @export
- * @param {any} options - An options object
- * @property {boolean} options.silent - If true will stop all console.log output
+ * @param {any} opts - An options object
+ * @property {boolean} opts.silent - If true will stop all console.log output
  * @param {string} fileName - Full Path to the .ts file to parse
  * @param {string} docPath - Full Path to the directory to store documentation in
  * @returns {string} Full Path and filename of the generated documentation
  */
-export function start(options: any, fileName: string, docPath: string): string {
-	this.options = options || {};
+export function start(opts: any, fileName: string, docPath: string): string {
+	_options = opts || {};
 	let pathInfo: Utils.PathInfo = Utils.getPathInfo(fileName, docPath);
 	component.htmlFilePath = pathInfo.fullHtmlFilePath;
 	let sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
@@ -389,12 +389,12 @@ function _writeDocumentation(pathInfo: Utils.PathInfo, component: Component): vo
 		writeStream.end();
 	});
 	writeStream.on('finish', () => {
-		if (!this.options || !this.options.silent) {
+		if (!_options || !_options.silent) {
 			console.log('All writes to', pathInfo.fullDocFilePath, 'done');
 		}
 	});
 	writeStream.on('close', () => {
-		if (!this.options || !this.options.silent) {
+		if (!_options || !_options.silent) {
 			console.log('Write stream closed');
 		}
 	});

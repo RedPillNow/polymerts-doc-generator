@@ -18,7 +18,7 @@ var _functions = [];
 var _listeners = [];
 var _observers = [];
 var _properties = [];
-var options = null;
+var _options = null;
 function reset() {
     component = new component_1.Component();
     _behaviors = [];
@@ -28,8 +28,8 @@ function reset() {
     _properties = [];
 }
 exports.reset = reset;
-function start(options, fileName, docPath) {
-    this.options = options || {};
+function start(opts, fileName, docPath) {
+    _options = opts || {};
     var pathInfo = Utils.getPathInfo(fileName, docPath);
     component.htmlFilePath = pathInfo.fullHtmlFilePath;
     var sourceFile = ts.createSourceFile(pathInfo.fileName, fs.readFileSync(pathInfo.fileName).toString(), ts.ScriptTarget.ES2015, true);
@@ -310,7 +310,6 @@ function findProperty(propertyName) {
 }
 exports.findProperty = findProperty;
 function _writeDocumentation(pathInfo, component) {
-    var _this = this;
     if (fs.existsSync(pathInfo.fullDocFilePath)) {
         fs.unlinkSync(pathInfo.fullDocFilePath);
     }
@@ -320,12 +319,12 @@ function _writeDocumentation(pathInfo, component) {
         writeStream.end();
     });
     writeStream.on('finish', function () {
-        if (!_this.options || !_this.options.silent) {
+        if (!_options || !_options.silent) {
             console.log('All writes to', pathInfo.fullDocFilePath, 'done');
         }
     });
     writeStream.on('close', function () {
-        if (!_this.options || !_this.options.silent) {
+        if (!_options || !_options.silent) {
             console.log('Write stream closed');
         }
     });
